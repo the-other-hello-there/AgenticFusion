@@ -1,0 +1,15 @@
+{
+  "model": "opus",
+  "modelSettings": {
+    "claude-sonnet-5-5": {
+      "effortLevel": "high"
+    },
+    "claude-opus-5-5": {
+      "effortLevel": "high"
+    }
+  },
+  "enabledMcpjsonServers": ["fusion"],
+  "autoMemoryEnabled": false,
+  "promptSuggestionEnabled": false,
+  "theme": "dark"
+}

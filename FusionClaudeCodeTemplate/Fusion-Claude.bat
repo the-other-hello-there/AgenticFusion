@@ -1,0 +1,236 @@
+@echo off
+rem =====================================================================
+rem  Fusion + Claude Code launcher (single file: batch header + PowerShell)
+rem  - Double-click: uses the folder this file is in as the project folder
+rem  - Or drag a project folder onto this file to use that folder instead
+rem  - Fixes PATH if 'claude' can't be found
+rem  - Initializes missing project files and ensures the Fusion MCP settings
+rem  - Use --setup-only to initialize without opening Fusion or Claude
+rem  Edit the settings in the PowerShell section below if needed.
+rem =====================================================================
+setlocal
+set "SELF=%~f0"
+set "PROJDIR=%~dp0"
+set "SETUP_ONLY="
+if /I "%~1"=="--setup-only" (set "SETUP_ONLY=1") else if not "%~1"=="" set "PROJDIR=%~1"
+if /I "%~2"=="--setup-only" set "SETUP_ONLY=1"
+set "PS_ARGS=-NoExit"
+if defined SETUP_ONLY set "PS_ARGS="
+powershell.exe -NoProfile -ExecutionPolicy Bypass %PS_ARGS% -Command "$f=[System.IO.File]::ReadAllText($env:SELF); $i=$f.LastIndexOf('#PS_BEGIN'); Invoke-Expression $f.Substring($i)"
+goto :eof
+
+#PS_BEGIN
+# ----------------------------- Settings ------------------------------
+$FusionPath     = ""          # optional: full path to Fusion .exe or .lnk
+$ProcessName    = "Fusion360" # process name used to detect a running Fusion
+$McpName        = "fusion"    # name the MCP server is registered under
+$McpPort        = 27182       # Fusion MCP server port
+$TimeoutSeconds = 120         # how long to wait for the MCP server
+$ProjectDir     = $env:PROJDIR
+$TemplateDir    = Split-Path -Parent $env:SELF
+# ---------------------------------------------------------------------
+
+function Test-McpPort {
+    param([int]$Port)
+    $client = New-Object System.Net.Sockets.TcpClient
+    try {
+        $iar = $client.BeginConnect("127.0.0.1", $Port, $null, $null)
+        if ($iar.AsyncWaitHandle.WaitOne(500) -and $client.Connected) {
+            $client.EndConnect($iar)
+            return $true
+        }
+        return $false
+    }
+    catch { return $false }
+    finally { $client.Close() }
+}
+
+function Find-FusionLauncher {
+    $roots = @(
+        "$env:APPDATA\Microsoft\Windows\Start Menu\Programs",
+        "$env:ProgramData\Microsoft\Windows\Start Menu\Programs"
+    )
+    foreach ($root in $roots) {
+        if (Test-Path -LiteralPath $root) {
+            $lnk = Get-ChildItem -LiteralPath $root -Recurse -Filter "*Fusion*.lnk" -ErrorAction SilentlyContinue |
+                   Where-Object { $_.Name -notmatch "Uninstall|Update|Manager|Help|Documentation" } |
+                   Select-Object -First 1
+            if ($lnk) { return $lnk.FullName }
+        }
+    }
+    return $null
+}
+
+# Adds a folder to the persistent user PATH (no duplicates) AND to this
+# session's PATH. Programs started from Explorer don't see PATH changes
+# until restart, so fixing the current session is what makes it work now.
+function Add-ToPath {
+    param([string]$Dir)
+    $want = $Dir.TrimEnd('\')
+
+    $userPath = [Environment]::GetEnvironmentVariable('PATH', 'User')
+    $entries = @()
+    if ($userPath) { $entries = @($userPath.Split(';') | Where-Object { $_ }) }
+    $inUser = $entries | Where-Object { $_.TrimEnd('\') -ieq $want }
+    if (-not $inUser) {
+        [Environment]::SetEnvironmentVariable('PATH', (($entries + $Dir) -join ';'), 'User')
+        Write-Host "Added $Dir to your user PATH." -ForegroundColor Yellow
+    }
+
+    $procEntries = @($env:PATH.Split(';') | Where-Object { $_ })
+    $inProc = $procEntries | Where-Object { $_.TrimEnd('\') -ieq $want }
+    if (-not $inProc) { $env:PATH = "$env:PATH;$Dir" }
+}
+
+function Confirm-Claude {
+    if (Get-Command claude -ErrorAction SilentlyContinue) { return $true }
+    Write-Host "'claude' not found on PATH - looking for it..." -ForegroundColor Yellow
+    $candidates = @("$env:USERPROFILE\.local\bin", "$env:APPDATA\npm")
+    foreach ($dir in $candidates) {
+        if ((Test-Path -LiteralPath "$dir\claude.exe") -or (Test-Path -LiteralPath "$dir\claude.cmd")) {
+            Add-ToPath -Dir $dir
+            if (Get-Command claude -ErrorAction SilentlyContinue) { return $true }
+        }
+    }
+    return $false
+}
+
+function Write-ProjectJson {
+    param([string]$File, [object]$Data)
+    $utf8 = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($File, (($Data | ConvertTo-Json -Depth 20) + "`n"), $utf8)
+}
+
+function Initialize-ProjectFiles {
+    $portable = @('CLAUDE.md', 'DfAM.md', 'Fusion-Failure-Repair.md', '.mcp.json', 'settings.json')
+    foreach ($name in $portable) {
+        $source = Join-Path $TemplateDir $name
+        $target = Join-Path $ProjectDir $name
+        if (-not (Test-Path -LiteralPath $target)) {
+            if (-not (Test-Path -LiteralPath $source)) { throw "Missing template file: $source" }
+            Copy-Item -LiteralPath $source -Destination $target
+            Write-Host "Created $name" -ForegroundColor Yellow
+        }
+    }
+    $projectFile = Join-Path $ProjectDir 'Project.md'
+    if (-not (Test-Path -LiteralPath $projectFile)) {
+        $starter = @'
+# Project.md: TBD
+
+This file holds the design intent and decisions for this design only. See `CLAUDE.md` for placement rules.
+
+## Document and structure
+- **TBD**
+
+## Design intent
+- **TBD**
+'@
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($projectFile, ($starter + "`n"), $utf8)
+        Write-Host 'Created Project.md' -ForegroundColor Yellow
+    }
+}
+
+function Ensure-ProjectMcp {
+    $file = Join-Path $ProjectDir '.mcp.json'
+    try { $json = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json }
+    catch { throw "Invalid .mcp.json; fix it before launching: $file" }
+    if (-not $json.mcpServers) {
+        $json | Add-Member -MemberType NoteProperty -Name 'mcpServers' -Value ([pscustomobject]@{}) -Force
+    }
+    $url = "http://127.0.0.1:$McpPort/mcp"
+    $entry = $json.mcpServers.PSObject.Properties[$McpName]
+    if (-not $entry -or $entry.Value.type -ne 'http' -or $entry.Value.url -ne $url) {
+        $json.mcpServers | Add-Member -MemberType NoteProperty -Name $McpName -Value ([pscustomobject]@{type='http'; url=$url}) -Force
+        Write-ProjectJson -File $file -Data $json
+        Write-Host "Configured project Fusion MCP server: $url" -ForegroundColor Yellow
+    }
+}
+
+function Ensure-ProjectSettings {
+    $file = Join-Path $ProjectDir 'settings.json'
+    try { $json = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json }
+    catch { throw "Invalid settings.json; fix it before launching: $file" }
+    $changed = $false
+    $enabled = @($json.enabledMcpjsonServers | Where-Object { $_ })
+    if ($enabled -notcontains $McpName) {
+        $enabled += $McpName
+        $json | Add-Member -MemberType NoteProperty -Name 'enabledMcpjsonServers' -Value $enabled -Force
+        $changed = $true
+    }
+    if (-not $json.PSObject.Properties['autoMemoryEnabled'] -or $json.autoMemoryEnabled -ne $false) {
+        $json | Add-Member -MemberType NoteProperty -Name 'autoMemoryEnabled' -Value $false -Force
+        $changed = $true
+    }
+    if ($changed) {
+        Write-ProjectJson -File $file -Data $json
+        Write-Host 'Enabled the Fusion server and disabled Claude auto-memory.' -ForegroundColor Yellow
+    }
+    return $file
+}
+
+function Start-FusionAndClaude {
+    $ErrorActionPreference = "Stop"
+
+    if (-not (Test-Path -LiteralPath $ProjectDir)) {
+        Write-Host "Project folder not found: $ProjectDir" -ForegroundColor Red
+        return
+    }
+    $ProjectDir = (Resolve-Path -LiteralPath $ProjectDir).Path
+    Initialize-ProjectFiles
+    Ensure-ProjectMcp
+    $settingsFile = Ensure-ProjectSettings
+    if ($env:SETUP_ONLY -eq '1') {
+        Write-Host "Project initialized: $ProjectDir" -ForegroundColor Green
+        return
+    }
+
+    # Claude account and runtime data stay in its normal user config, outside the portable folder.
+    Remove-Item Env:CLAUDE_CONFIG_DIR -ErrorAction SilentlyContinue
+    if (-not (Confirm-Claude)) {
+        Write-Host "Claude Code ('claude') was not found on PATH or in the usual install folders. Install it, then run this again." -ForegroundColor Red
+        return
+    }
+    Set-Location -LiteralPath $ProjectDir
+
+    # Start Fusion if it isn't running.
+    if (Get-Process -Name $ProcessName -ErrorAction SilentlyContinue) {
+        Write-Host "Fusion is already running." -ForegroundColor Green
+    }
+    else {
+        $launcher = if ($FusionPath) { $FusionPath } else { Find-FusionLauncher }
+        if (-not $launcher) {
+            Write-Host "Couldn't find a Fusion launcher. Set `$FusionPath at the top of this file." -ForegroundColor Red
+            return
+        }
+        Write-Host "Starting Fusion: $launcher"
+        Start-Process -FilePath $launcher
+    }
+
+    # Wait for the Fusion MCP server.
+    if (Test-McpPort -Port $McpPort) {
+        Write-Host "Fusion MCP server is up on port $McpPort." -ForegroundColor Green
+    }
+    else {
+        Write-Host "Waiting for Fusion MCP server on 127.0.0.1:$McpPort (up to $TimeoutSeconds s)..."
+        $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+        $ready = $false
+        while ((Get-Date) -lt $deadline) {
+            if (Test-McpPort -Port $McpPort) { $ready = $true; break }
+            Start-Sleep -Seconds 2
+        }
+        if ($ready) {
+            Write-Host "Fusion MCP server is up." -ForegroundColor Green
+        }
+        else {
+            Write-Warning "MCP server not detected. Open a design in Fusion and tick Preferences > General > API > 'Fusion MCP Server'. Starting Claude Code anyway."
+        }
+    }
+
+    # Launch Claude Code with this project's settings and MCP approval.
+    Write-Host "Starting Claude Code in $ProjectDir" -ForegroundColor Cyan
+    claude --settings $settingsFile
+}
+
+try { Start-FusionAndClaude }
+catch { Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red }
