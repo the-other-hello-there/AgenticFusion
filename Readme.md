@@ -18,11 +18,15 @@ Both project configurations target `http://127.0.0.1:27182/mcp`: Claude uses `.m
 
 ## Start a project
 
-1. Copy the **inner** [`AgenticFusionTemplate/`](AgenticFusionTemplate/) folder anywhere and rename the copy for your project. You can also unpack [`AgenticFusionTemplate.zip`](AgenticFusionTemplate.zip), which contains the same project files. Keep its supplied files and `.codex/` together; leave the repository `.git/` behind.
+1. Copy the **inner** [`AgenticFusionTemplate/`](AgenticFusionTemplate/) folder anywhere and rename the copy for your project. Keep its supplied files, `.agents/`, and `.codex/` together; leave the repository `.git/` behind.
 2. Run `Fusion-Claude.bat` for Claude Code or `Fusion-Codex.bat` for Codex. The launchers create `Project.md` only if it is missing, prepare both agents' local MCP configurations, start Fusion if needed, wait up to 120 seconds for its server, and then launch the chosen agent in the project folder. Codex may ask you to trust the project before using its project-scoped MCP configuration.
 3. In `Project.md`, record verified design intent, interfaces, parameters, document names, decisions, and open items. The two agent entry files direct their agents to read it and the shared Fusion rules.
 
+The Claude launcher loads `.agents/` as a local plugin with `--plugin-dir`; Codex discovers the same skill files in `.agents/skills/`. Launch Claude through `Fusion-Claude.bat` to make the shared skills available. Each skill starts with a short router and reads detailed references only when the task needs them.
+
 You may drag an existing project folder onto either launcher in the template. Missing template files, including both launchers, are copied into that project without replacing existing context. To prepare files without opening Fusion or an agent, run `./Fusion-Claude.bat --setup-only` or `./Fusion-Codex.bat --setup-only` from PowerShell in a copied project folder. Each batch file uses the same setup routine.
+
+An older project copy keeps its existing launcher and instruction files during setup. To use the new skills in that copy, compare and update those files after preserving any project-specific edits; setup does not replace them automatically.
 
 ### Check the connection
 
@@ -39,8 +43,9 @@ If the server is disconnected, check that Fusion is running, its MCP option is e
 | `CLAUDE.md`, `AGENTS.md` | Small agent-specific startup and tool instructions. |
 | `.mcp.json`, `settings.json` | Claude Code project MCP and agent settings. |
 | `.codex/config.toml` | Codex project MCP connection. |
-| `DfAM.md` | Printing guidance loaded for fabrication tasks. |
-| `Fusion-Failure-Repair.md` | Symptom-specific repair guidance loaded after failures. |
+| `.agents/skills/fusion-print/` | Shared printing skill with references loaded by task: design rules, orientation, scan, and improvement. |
+| `.agents/skills/fusion-repair/` | Shared repair skill with references loaded by failure type. |
+| `.agents/.claude-plugin/plugin.json` | Lets the Claude launcher load those same skill files as a local plugin. Codex discovers them in `.agents/skills/`. |
 | `Project.md` | Created on first run for this design's verified context and decisions. |
 
 Fusion designs remain in Fusion's documents. Do not put agent credentials or generated agent runtime folders into a project copy.

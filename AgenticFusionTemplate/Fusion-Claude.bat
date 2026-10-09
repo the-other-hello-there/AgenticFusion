@@ -123,7 +123,23 @@ function Write-ProjectJson {
 }
 
 function Initialize-ProjectFiles {
-    $portable = @('Fusion-Claude.bat', 'Fusion-Codex.bat', 'Agentic-Fusion.md', 'CLAUDE.md', 'AGENTS.md', 'DfAM.md', 'Fusion-Failure-Repair.md', '.mcp.json', 'settings.json', '.codex\config.toml')
+    $portable = @(
+        'Fusion-Claude.bat', 'Fusion-Codex.bat', 'Agentic-Fusion.md', 'CLAUDE.md', 'AGENTS.md',
+        '.mcp.json', 'settings.json', '.codex\config.toml',
+        '.agents\.claude-plugin\plugin.json',
+        '.agents\skills\fusion-print\SKILL.md',
+        '.agents\skills\fusion-print\references\sizes-and-fits.md',
+        '.agents\skills\fusion-print\references\overhangs-and-bed.md',
+        '.agents\skills\fusion-print\references\voids-and-cables.md',
+        '.agents\skills\fusion-print\references\mechanisms-and-fasteners.md',
+        '.agents\skills\fusion-print\references\orientation.md',
+        '.agents\skills\fusion-print\references\scan.md',
+        '.agents\skills\fusion-print\references\improvement.md',
+        '.agents\skills\fusion-repair\SKILL.md',
+        '.agents\skills\fusion-repair\references\mcp-and-save.md',
+        '.agents\skills\fusion-repair\references\document-state.md',
+        '.agents\skills\fusion-repair\references\geometry.md'
+    )
     foreach ($name in $portable) {
         $source = Join-Path $TemplateDir $name
         $target = Join-Path $ProjectDir $name
@@ -287,7 +303,7 @@ function Start-AgenticFusion {
     }
     else {
         Write-Host "Starting Claude Code in $ProjectDir" -ForegroundColor Cyan
-        claude --settings $settingsFile
+        claude --settings $settingsFile --plugin-dir (Join-Path $ProjectDir '.agents')
     }
 }
 

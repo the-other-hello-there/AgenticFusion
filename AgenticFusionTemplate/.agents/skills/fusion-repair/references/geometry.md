@@ -1,0 +1,9 @@
+## Sketches, blends, and DfAM fixes
+
+- **Sketch warning `Edge 1 missing` / `Curve 1 missing`:** a projected curve lost its source, and reading `referencedEntity` raises. Delete lost curves only when no used profile needs them; in the same script, compare the consuming feature's health and volume and raise to roll back if either changes.
+- **Whole-tool-body fillet raises `InternalValidationError : body` or `FILLET_NO_EDGE_FOUND`:** passing its creating Feature objects caused the former for a loft-plus-cut tool; passing BRepFaces caused the latter. Pass `body.edges` after excluding unwanted edges. To edit later, roll to the fillet and set `edgeSets.item(0).edges`.
+- **A groove or cut round fails:** fillet its edges one at a time in a script that raises at the end, so the probes roll back. Check what the failing rim meets, such as a neighbouring fillet or a hole 0.1–0.3 mm away.
+- **`ASM_BL_UNFIN_SHEET` / `BLEND_TOO_BIG`:** the radius usually exceeds local material. Probe the limit and tell the user rather than silently changing the design. An equal-distance chamfer in place of a large fillet can fail the same way.
+- **Cable-channel mouth chamfer gives `ASM_BL_CAP_COMPLEX`:** a separate chamfer on the sweep's mouth edges failed at the ends. Build the rounded inlet into the keyhole profile as specified in the `fusion-print` skill's [voids-and-cables.md](../../fusion-print/references/voids-and-cables.md).
+- **Sacrificial bridge steps lose constraints:** a later change can split the counterbore floor face. Delete the steps and rebuild them on the new floor.
+- **Bed-edge chamfer fails or loses an edge:** bisect its edge list to exclude edges it cannot take. A short edge consumed by an inserted bed feature appears as `Edge N missing`; follow the timeline placement and edge-reselection procedure in the `fusion-print` skill's [improvement.md](../../fusion-print/references/improvement.md).

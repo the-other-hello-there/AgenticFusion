@@ -14,7 +14,7 @@ Run these in order in a **disposable Fusion project** using a fresh copy of the 
 
 > In the new blank Fusion design, make one solid L bracket. Its base is 60 mm in X, 30 mm in Y, and 4 mm thick in Z. At the X = 0 end, add a wall across the full 30 mm width; the wall is 4 mm thick in X and rises 25 mm above the base's top face. Add two 4.5 mm diameter through holes in the base at (X, Y) = (20, 15) mm and (45, 15) mm, measured from the X = 0, Y = 0 base corner. Use named user parameters for these dimensions and positions. Do not add ribs or decorative features. Verify dimensions, body count, and timeline health, then save as `Benchmark L Bracket`. Record the verified design intent, document name, and parameters in `Project.md`.
 
-**Accept when:** The saved design has one healthy parametric body with the specified geometry and `Project.md` contains verified facts.
+**Accept when:** The saved design has one healthy parametric body with the specified geometry, independent design choices use named user parameters, dependent dimensions use expressions, and `Project.md` contains verified facts.
 
 ### B3 — Selected-feature identification
 
@@ -32,13 +32,13 @@ Run these in order in a **disposable Fusion project** using a fresh copy of the 
 
 > In `Benchmark L Bracket`, change only the wall rise above the base from 25 mm to 30 mm by editing its user parameter. Verify that the base, both holes, body count, and timeline health remain correct. Save a new version with a descriptive message and update `Project.md` with the verified new state. Report any problem instead of silently rebuilding the part.
 
-**Accept when:** The wall rise is 30 mm, the rest of the geometry is preserved, the new version is saved, and `Project.md` agrees with Fusion.
+**Accept when:** The wall rise is 30 mm through its existing parameter, no corrective geometry feature was appended, the rest of the geometry is preserved, the new version is saved, and `Project.md` agrees with Fusion.
 
 ### B6 — Printability review
 
 > Review the current bracket for FFF printing with the base flat on the bed. Follow the DfAM decision path: identify likely print issues, distinguish safe changes from changes that need approval, and explain fit or clearance rules only if they apply to this bracket. Report the result without changing or saving the design.
 
-**Accept when:** The review uses `DfAM.md`, respects the existing geometry and design intent, and makes no unauthorized changes.
+**Accept when:** The review uses the relevant `fusion-print` skill references, respects the existing geometry and design intent, and makes no unauthorized changes.
 
 ### B7 — New-session context recovery
 
