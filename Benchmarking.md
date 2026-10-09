@@ -1,8 +1,8 @@
-# Fusion + Claude Code benchmarks
+# Agentic Fusion benchmarks
 
 ## Benchmark prompts
 
-Run these in order in a **disposable Fusion project** using a fresh copy of the template for each version you compare. Start Claude Code through `Fusion-Claude.bat`, open a new blank Fusion design before B1, and keep the same project and design through B6. Before B3, select one mounting-hole feature in Fusion's timeline. Before B7, close Claude Code and reopen it through the batch file. Start timing when you send each prompt and stop when Claude finishes its answer; record the change in the credit or usage measure you have available. Keep the same measurement method across versions. Do not include your own preparation or review time.
+Run these in order in a **disposable Fusion project** using a fresh copy of the template for each version you compare. Start the chosen agent through `Fusion-Claude.bat` or `Fusion-Codex.bat`, open a new blank Fusion design before B1, and keep the same project and design through B6. Before B3, select one mounting-hole feature in Fusion's timeline. Before B7, close the agent and reopen it through the same batch file. Start timing when you send each prompt and stop when the agent finishes its answer; record the change in the credit or usage measure you have available. Keep the same measurement method across versions. Do not include your own preparation or review time.
 
 ### B1 — Connection and read-only inspection
 
@@ -42,7 +42,7 @@ Run these in order in a **disposable Fusion project** using a fresh copy of the 
 
 ### B7 — New-session context recovery
 
-> In this new Claude Code session, summarize the bracket's recorded design intent, current wall rise, hole layout, Fusion document name, and any open items. Check `Project.md` and the live Fusion document; distinguish confirmed facts from anything you cannot verify. Do not edit either one.
+> In this new agent session, summarize the bracket's recorded design intent, current wall rise, hole layout, Fusion document name, and any open items. Check `Project.md` and the live Fusion document; distinguish confirmed facts from anything you cannot verify. Do not edit either one.
 
 **Accept when:** The answer matches both `Project.md` and Fusion after the restart and does not invent missing context.
 
@@ -51,7 +51,7 @@ Run these in order in a **disposable Fusion project** using a fresh copy of the 
 Copy this block for each template revision. Use the Git commit ID if the template has no version tag. Rate acceptability from **1 (unusable)** to **5 (fully acceptable)**, and note the specific errors or extra corrections needed.
 
 - Template version or Git commit: **[fill in]**
-- Claude Code version (`claude --version`): **[fill in]**
+- Agent and CLI version (`claude --version` or `codex --version`): **[fill in]**
 - Fusion version: **[fill in]**
 - Model and effort: **[fill in]**
 - Date and credit/usage unit: **[fill in]**

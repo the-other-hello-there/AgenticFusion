@@ -1,8 +1,8 @@
 # DfAM.md
 
-Read this file for additive manufacturing (FFF 3D printing) tasks as directed by `CLAUDE.md`. It covers design rules (Hydra Research baseline), analysis, and iterative improvement for any design.
+Read this file for additive manufacturing (FFF 3D printing) tasks as directed by `Agentic-Fusion.md`. It covers design rules (Hydra Research baseline), analysis, and iterative improvement for any design.
 
-**Precedence:** preserve design intent and function in `Project.md` and general design rules in `CLAUDE.md`; ask when they conflict. Put design-specific print decisions (chosen orientations, open printability items) in `Project.md`. Keep this file generic and DfAM-specific under the placement rules in `CLAUDE.md`.
+**Precedence:** preserve design intent and function in `Project.md` and general design rules in `Agentic-Fusion.md`; ask when they conflict. Put design-specific print decisions (chosen orientations, open printability items) in `Project.md`. Keep this file generic and DfAM-specific under the placement rules in `Agentic-Fusion.md`.
 
 ## Decision path for a printing task
 
@@ -20,7 +20,7 @@ Orientation missing → choose and record it (**Analysis setup**); chosen → ke
 - **Small holes are acceptable as is (user rule)** when meant for self-tapping, or when short enough to drill or carve out easily. Even if poorly resolved, they still mark the center for drilling.
 
 **Fits and threads**
-- **Intentional mating or sliding fits between printed parts:** about 0.2 mm loose, 0.1 mm tight. Keep it a parameter. For parts that must remain separate throughout motion, use the about 1 mm running clearance in `CLAUDE.md`.
+- **Intentional mating or sliding fits between printed parts:** about 0.2 mm loose, 0.1 mm tight. Keep it a parameter. For parts that must remain separate throughout motion, use the about 1 mm running clearance in `Agentic-Fusion.md`.
   - **Angled sliding fits (dovetails):** the clearance must be a true parallel offset of the mating profile. With flank angle a, depth d and clearance c: neck `+ c/cos a`, flare `+ c/cos a + (d + c)·tan a`, floor `− c`.
     - Adding c sideways and cutting c deeper makes the flank steeper and leaves about c/2 at the rail tip. A printed dovetail with 0.08 mm real gap was too stiff to slide (user).
     - **Size clearances by each face's job (user):** a slide-on dovetail only retains the part against pulling off; a clip stops sliding. Give the retaining flanks and the shoulder 0.2 mm square to the faces (about 0.4 mm play per slot; a zero-gap, flat-on-flat shoulder along a long dovetail jammed). Make every non-functional face generously clear, e.g. the rail tip about 0.6 mm from the groove roof.
@@ -162,7 +162,7 @@ Use height = −(p·down) and the overhang test n·down > cos(`dfm_ovh_ang`) (35
 - **Lowest-line edges** (the face-slope scan misses them; found by the user): straight convex edges that lie horizontal in print, above the bed, where both faces face down and both rise away from the edge. Test the rise with the in-face direction t = edge tangent × n, flipped to point into the face (`isParameterOnFace`); require −t·down > 0. Such an edge is a V knife edge whose first layer is an unsupported line, even when both faces pass the slope rule.
   - If the V stands out from a wall, cut it with a `dfm_ovh_ang` plane through its root at the wall, so the feature grows from the wall. Everything above the plane is unchanged, and the cut only removes material.
   - Don't extend the V's faces below its tip to add a wedge: past the apex the faces cross, and the wedge meets the feature only along the tip line (non-manifold; later blends fail).
-- **Provenance:** name the feature that made each flagged face (see `CLAUDE.md` → feature provenance), so the report speaks in design terms.
+- **Provenance:** name the feature that made each flagged face (see `Agentic-Fusion.md` → feature provenance), so the report speaks in design terms.
 - **Space below an overhang:**
   - Sample points in the box below the face, with depth equal to its smaller extent (a 45° gusset fits inside). Transform them by each assembled instance's `occurrence.transform2`, and test `pointContainment` against every other body: first at rest, then while sweeping each revolute as-built joint of the arm through its `rotationLimits`. Restore `rotationValue` afterwards.
   - Pre-filter with `boundingBox.contains`. Sweeps are slow, so log to a file.
@@ -196,10 +196,10 @@ When the user says "iterative DfAM improvement" (alter the design toward the rul
      - Repair any later fillet that lost references.
      - At the end of the timeline, chamfer the re-found edges with an equal distance taken from the fillet's radius expression. Keep the upward fillets.
      - If the equal chamfer fails (large radius, little material), leave the fillet and ask.
-   - **Bed-edge chamfer:** make one chamfer of `dfm_base_ch` on all bed edges. After any change to bed-face edges, update its selection or it loses references. Delete and rebuild it at the timeline end only if no later feature follows it; deleting it can also delete those features. Otherwise, insert the bed-touching addition (corner rounds, flats) just before it (`CLAUDE.md` → Timeline marker), then re-select its edges. For failed or missing edges, see `Fusion-Failure-Repair.md`.
+   - **Bed-edge chamfer:** make one chamfer of `dfm_base_ch` on all bed edges. After any change to bed-face edges, update its selection or it loses references. Delete and rebuild it at the timeline end only if no later feature follows it; deleting it can also delete those features. Otherwise, insert the bed-touching addition (corner rounds, flats) just before it (`Agentic-Fusion.md` → Timeline marker), then re-select its edges. For failed or missing edges, see `Fusion-Failure-Repair.md`.
    - **Bed corner rounds:** a fillet of `dfm_bed_r` on the free convex bed corners (see the Bed corners scan and the bed-contact rules), checked in each assembled instance.
-   - **Crevices and stress raisers:** simplify the geometry first (see `CLAUDE.md`, "No functionless crevices or peaks"). Blend only the load-path corners that remain.
-     - Find concave edges and key them by the feature pair of their two faces (feature provenance, `CLAUDE.md`). At the edge midpoint, take t1 = tangent × n1, flipped so it points into face 1 (check with `isParameterOnFace`). The edge is concave if t1·n2 > 0.05 and the normals differ by more than 5°.
+   - **Crevices and stress raisers:** simplify the geometry first (see `Agentic-Fusion.md`, "No functionless crevices or peaks"). Blend only the load-path corners that remain.
+     - Find concave edges and key them by the feature pair of their two faces (feature provenance, `Agentic-Fusion.md`). At the edge midpoint, take t1 = tangent × n1, flipped so it points into face 1 (check with `isParameterOnFace`). The edge is concave if t1·n2 > 0.05 and the normals differ by more than 5°.
      - Exclude functional corners: holes, teardrops, bridge steps, pockets that seat purchased parts, servo walls, bed chamfers, and datum or seat corners that locate a mating part.
      - **No universal rule for corners (user):** decide each one by whether a round or chamfer helps or harms printing and function. Round a load-path junction where the round won't face down in print; otherwise use an equal-distance chamfer. Leave it sharp where it is a seat, fit or clearance.
      - Check the whole edge, not its midpoint: sample the round's normals (interpolated between the two face normals) and the chamfer normal along the edge against down. A root corner around a boss whose axis lies parallel to the bed has a near-horizontal round face at the bottom (4–7° measured), while a 45° chamfer prints there.
@@ -223,7 +223,7 @@ When the user says "iterative DfAM improvement" (alter the design toward the rul
    - Overhang-reduction options to weigh, roughly in order:
      - downward fillet → chamfer;
      - slope ledges to 50° or less;
-     - **convex rounds that curl under toward the bed** (a sleeve's outer end round meeting the bed tangentially): keep the inside round and make the outside flat (user). Join a quadrilateral per round: the bed point under the centre → the bed point of the tangent → the tangent point, where the outer normal is `90° − dfm_td_ang` from down → a mid-wall point on the same radius. Use parameter-expression vertices, extrude over the round's depth, and insert it before the bed chamfer. It adds material: check it with the support-policy test and the box sweep in `CLAUDE.md` (Verify motion);
+     - **convex rounds that curl under toward the bed** (a sleeve's outer end round meeting the bed tangentially): keep the inside round and make the outside flat (user). Join a quadrilateral per round: the bed point under the centre → the bed point of the tangent → the tangent point, where the outer normal is `90° − dfm_td_ang` from down → a mid-wall point on the same radius. Use parameter-expression vertices, extrude over the round's depth, and insert it before the bed chamfer. It adds material: check it with the support-policy test and the box sweep in `Agentic-Fusion.md` (Verify motion);
      - **low-angle ramps rising from the bed** (e.g. a tapered finger's underside at 20°): keep the bed contact flat further out, then rise at `dfm_ovh_ang` to where the ramp meets the next self-supporting face. That's the least material. This removes the support wedge and deepens the section. It adds material: run the support-policy test, the joint sweeps, and clearance to external parts the part reaches into. End the new face exactly on any existing steeper plane nearby (e.g. a 45° tip-trim cut). A parallel face about 1 mm off it leaves a step and a knife edge where the other cut's sketch ends;
      - **ceilings under walls that stand beside a box** (wall bottoms above the bed): a `dfm_ovh_ang` gusset from the box side to the wall's outer edge. Start it at the tangent line of any bed corner round on the box side; a lower start leaves a 0.1–0.4 mm slit against the round. Raise the wall's lower end chamfer to the gusset start (removal only, as long as it stays ≥ `dfm_ovh_ang`), so the two meet in one edge instead of leaving a 1–2 mm strip;
      - teardrops;

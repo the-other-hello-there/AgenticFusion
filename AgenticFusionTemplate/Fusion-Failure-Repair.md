@@ -1,12 +1,12 @@
 # Fusion failure repair
 
-Read this file when a Fusion MCP call, save, sketch, feature, occurrence, screenshot, or DfAM fix fails or produces an unexpected result. Match the observed symptom below; do not use a repair as a substitute for the preventive rules in `CLAUDE.md` and `DfAM.md`. Test repairs in one rollback-capable script where possible, then recheck body count, volume, feature health, constraints, motion, and the saved version as applicable.
+Read this file when a Fusion MCP call, save, sketch, feature, occurrence, screenshot, or DfAM fix fails or produces an unexpected result. Match the observed symptom below; do not use a repair as a substitute for the preventive rules in `Agentic-Fusion.md` and `DfAM.md`. Test repairs in one rollback-capable script where possible, then recheck body count, volume, feature health, constraints, motion, and the saved version as applicable.
 
 ## MCP output, timeout, and crash
 
 - **`The operation timed out.`** The script can still be running in Fusion, with later calls queued behind it. Wait, then poll with a read-only script; do not blindly rerun the build. Split future heavy builds into batches and log progress to a scratchpad file.
 - **Empty MCP output mid-session:** scripts may return an empty message even while `sys.stdout` works. Write results to a scratchpad file and read it with Bash for the rest of that session.
-- **Save collision or `ECONNRESET`:** a scripted `doc.save()` started in the same second as an autosave and crashed Fusion with heap corruption `0xc0000374` after `NEUTRON_BUG_ALERT` floods in `BinaryBulkSaveVisitor`. The version was not saved; its crash-recovery backup was `not a valid zip package`. Follow the autosave timing and version checks in `CLAUDE.md` before another save.
+- **Save collision or `ECONNRESET`:** a scripted `doc.save()` started in the same second as an autosave and crashed Fusion with heap corruption `0xc0000374` after `NEUTRON_BUG_ALERT` floods in `BinaryBulkSaveVisitor`. The version was not saved; its crash-recovery backup was `not a valid zip package`. Follow the autosave timing and version checks in `Agentic-Fusion.md` before another save.
 - **Startup recovery dialog after a crash:** it blocks every MCP call, including read-only calls, with `The operation timed out.` Ask the user to dismiss the dialog.
 - **Export timeout during save upload:** an export can return `The operation timed out.` and still finish; check output-file timestamps before retrying.
 

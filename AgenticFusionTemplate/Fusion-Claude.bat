@@ -1,19 +1,27 @@
 @echo off
 rem =====================================================================
-rem  Fusion + Claude Code launcher (single file: batch header + PowerShell)
+rem  Agentic Fusion launcher (single file: batch header + PowerShell)
 rem  - Double-click: uses the folder this file is in as the project folder
 rem  - Or drag a project folder onto this file to use that folder instead
-rem  - Fixes PATH if 'claude' can't be found
+rem  - Fusion-Codex.bat calls this file with --codex to launch Codex
+rem  - Fixes PATH if the selected agent can't be found
 rem  - Initializes missing project files and ensures the Fusion MCP settings
-rem  - Use --setup-only to initialize without opening Fusion or Claude
+rem  - Use --setup-only to initialize without opening Fusion or an agent
 rem  Edit the settings in the PowerShell section below if needed.
 rem =====================================================================
 setlocal
 set "SELF=%~f0"
 set "PROJDIR=%~dp0"
 set "SETUP_ONLY="
-if /I "%~1"=="--setup-only" (set "SETUP_ONLY=1") else if not "%~1"=="" set "PROJDIR=%~1"
-if /I "%~2"=="--setup-only" set "SETUP_ONLY=1"
+set "AGENT=claude"
+:parse_args
+if "%~1"=="" goto args_done
+if /I "%~1"=="--setup-only" set "SETUP_ONLY=1"
+if /I "%~1"=="--codex" set "AGENT=codex"
+if /I not "%~1"=="--setup-only" if /I not "%~1"=="--codex" set "PROJDIR=%~1"
+shift
+goto parse_args
+:args_done
 set "PS_ARGS=-NoExit"
 if defined SETUP_ONLY set "PS_ARGS="
 powershell.exe -NoProfile -ExecutionPolicy Bypass %PS_ARGS% -Command "$f=[System.IO.File]::ReadAllText($env:SELF); $i=$f.LastIndexOf('#PS_BEGIN'); Invoke-Expression $f.Substring($i)"
@@ -95,6 +103,19 @@ function Confirm-Claude {
     return $false
 }
 
+function Confirm-Codex {
+    if (Get-Command codex -ErrorAction SilentlyContinue) { return $true }
+    Write-Host "'codex' not found on PATH - looking for it..." -ForegroundColor Yellow
+    $candidates = @("$env:LOCALAPPDATA\Programs\OpenAI\Codex\bin", "$env:APPDATA\npm")
+    foreach ($dir in $candidates) {
+        if ((Test-Path -LiteralPath "$dir\codex.exe") -or (Test-Path -LiteralPath "$dir\codex.cmd")) {
+            Add-ToPath -Dir $dir
+            if (Get-Command codex -ErrorAction SilentlyContinue) { return $true }
+        }
+    }
+    return $false
+}
+
 function Write-ProjectJson {
     param([string]$File, [object]$Data)
     $utf8 = New-Object System.Text.UTF8Encoding($false)
@@ -102,12 +123,14 @@ function Write-ProjectJson {
 }
 
 function Initialize-ProjectFiles {
-    $portable = @('CLAUDE.md', 'DfAM.md', 'Fusion-Failure-Repair.md', '.mcp.json', 'settings.json')
+    $portable = @('Fusion-Claude.bat', 'Fusion-Codex.bat', 'Agentic-Fusion.md', 'CLAUDE.md', 'AGENTS.md', 'DfAM.md', 'Fusion-Failure-Repair.md', '.mcp.json', 'settings.json', '.codex\config.toml')
     foreach ($name in $portable) {
         $source = Join-Path $TemplateDir $name
         $target = Join-Path $ProjectDir $name
         if (-not (Test-Path -LiteralPath $target)) {
             if (-not (Test-Path -LiteralPath $source)) { throw "Missing template file: $source" }
+            $targetDir = Split-Path -Parent $target
+            if (-not (Test-Path -LiteralPath $targetDir)) { New-Item -ItemType Directory -Path $targetDir -Force | Out-Null }
             Copy-Item -LiteralPath $source -Destination $target
             Write-Host "Created $name" -ForegroundColor Yellow
         }
@@ -117,7 +140,7 @@ function Initialize-ProjectFiles {
         $starter = @'
 # Project.md: TBD
 
-This file holds the design intent and decisions for this design only. See `CLAUDE.md` for placement rules.
+This file holds the design intent and decisions for this design only. See `Agentic-Fusion.md` for placement rules.
 
 ## Document and structure
 - **TBD**
@@ -147,6 +170,28 @@ function Ensure-ProjectMcp {
     }
 }
 
+function Ensure-CodexMcp {
+    $file = Join-Path $ProjectDir '.codex\config.toml'
+    $content = [System.IO.File]::ReadAllText($file)
+    $url = "http://127.0.0.1:$McpPort/mcp"
+    $line = 'url = "' + $url + '"'
+    $pattern = '(?ms)(^\[mcp_servers\.fusion\][ \t]*\r?\n)(.*?)(?=^\[|\z)'
+    $match = [regex]::Match($content, $pattern)
+    if ($match.Success) {
+        $section = $match.Groups[2].Value
+        if ($section -match '(?m)^[ \t]*url[ \t]*=') {
+            $updated = [regex]::new('(?m)^[ \t]*url[ \t]*=[^\r\n]*').Replace($section, $line, 1)
+        }
+        else { $updated = $line + "`n" + $section }
+        $content = $content.Substring(0, $match.Groups[2].Index) + $updated + $content.Substring($match.Groups[2].Index + $match.Groups[2].Length)
+    }
+    else { $content = $content.TrimEnd() + "`n`n[mcp_servers.fusion]`n$line`n" }
+    if ($content -ne [System.IO.File]::ReadAllText($file)) {
+        [System.IO.File]::WriteAllText($file, $content, (New-Object System.Text.UTF8Encoding($false)))
+        Write-Host "Configured Codex Fusion MCP server: $url" -ForegroundColor Yellow
+    }
+}
+
 function Ensure-ProjectSettings {
     $file = Join-Path $ProjectDir 'settings.json'
     try { $json = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json }
@@ -169,7 +214,7 @@ function Ensure-ProjectSettings {
     return $file
 }
 
-function Start-FusionAndClaude {
+function Start-AgenticFusion {
     $ErrorActionPreference = "Stop"
 
     if (-not (Test-Path -LiteralPath $ProjectDir)) {
@@ -179,17 +224,26 @@ function Start-FusionAndClaude {
     $ProjectDir = (Resolve-Path -LiteralPath $ProjectDir).Path
     Initialize-ProjectFiles
     Ensure-ProjectMcp
+    Ensure-CodexMcp
     $settingsFile = Ensure-ProjectSettings
     if ($env:SETUP_ONLY -eq '1') {
         Write-Host "Project initialized: $ProjectDir" -ForegroundColor Green
         return
     }
 
-    # Claude account and runtime data stay in its normal user config, outside the portable folder.
-    Remove-Item Env:CLAUDE_CONFIG_DIR -ErrorAction SilentlyContinue
-    if (-not (Confirm-Claude)) {
-        Write-Host "Claude Code ('claude') was not found on PATH or in the usual install folders. Install it, then run this again." -ForegroundColor Red
-        return
+    if ($env:AGENT -eq 'codex') {
+        if (-not (Confirm-Codex)) {
+            Write-Host "Codex ('codex') was not found on PATH or in the usual install folders. Install it, then run this again." -ForegroundColor Red
+            return
+        }
+    }
+    else {
+        # Claude account and runtime data stay in its normal user config, outside the portable folder.
+        Remove-Item Env:CLAUDE_CONFIG_DIR -ErrorAction SilentlyContinue
+        if (-not (Confirm-Claude)) {
+            Write-Host "Claude Code ('claude') was not found on PATH or in the usual install folders. Install it, then run this again." -ForegroundColor Red
+            return
+        }
     }
     Set-Location -LiteralPath $ProjectDir
 
@@ -223,14 +277,19 @@ function Start-FusionAndClaude {
             Write-Host "Fusion MCP server is up." -ForegroundColor Green
         }
         else {
-            Write-Warning "MCP server not detected. Open a design in Fusion and tick Preferences > General > API > 'Fusion MCP Server'. Starting Claude Code anyway."
+            Write-Warning "MCP server not detected. Open a design in Fusion and tick Preferences > General > API > 'Fusion MCP Server'. Starting $($env:AGENT) anyway."
         }
     }
 
-    # Launch Claude Code with this project's settings and MCP approval.
-    Write-Host "Starting Claude Code in $ProjectDir" -ForegroundColor Cyan
-    claude --settings $settingsFile
+    if ($env:AGENT -eq 'codex') {
+        Write-Host "Starting Codex in $ProjectDir" -ForegroundColor Cyan
+        codex
+    }
+    else {
+        Write-Host "Starting Claude Code in $ProjectDir" -ForegroundColor Cyan
+        claude --settings $settingsFile
+    }
 }
 
-try { Start-FusionAndClaude }
+try { Start-AgenticFusion }
 catch { Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red }

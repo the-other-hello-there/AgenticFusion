@@ -1,14 +1,10 @@
-# Claude Code + Fusion workspace
+# Agentic Fusion: shared project rules
 
-Run `Fusion-Claude.bat` to open this portable workspace. The launcher prepares the project, starts Fusion, waits for the local Fusion MCP server, and starts Claude Code with this project's `settings.json`. Fusion designs live in Fusion cloud documents; this folder holds instructions, project context, and requested inputs or exports.
+Read this file for every Fusion task, whether using Claude Code or Codex. The launcher creates `Project.md` before the agent starts and preserves an existing one. Fusion designs live in Fusion cloud documents; this folder holds instructions, project context, and requested inputs or exports.
 
 ## Decision path for every Fusion session
 
-The batch launcher creates `Project.md` before starting Claude Code, without replacing an active project's context. Its design intent, interfaces, parameters, decisions, document names, and open items load at session start:
-
-@Project.md
-
-The general design, MCP, and modeling rules below load at session start. Route each request in this order:
+Read `Project.md` at session start for design intent, interfaces, parameters, decisions, document names, and open items. Then route each request:
 
 | Condition | Action |
 | --- | --- |
@@ -24,22 +20,18 @@ Re-read an authored file after editing it in the same session.
 - Preserve `Project.md` design intent and function first, then generic design rules, then DfAM preferences. Ask when they conflict. In DfAM, assembly symmetry takes precedence over a printing tweak that would break it.
 - Put each fact in one place: design-specific intent and print decisions in `Project.md`; preventive design, MCP, and modeling rules in the matching section below; generic printing rules and methods in `DfAM.md`; observed failure symptoms and recovery in `Fusion-Failure-Repair.md`. Keep a preventive rule here even when its failure example moves to the repair file.
 - Record only verified behavior or user-stated rules. Keep exact useful error text, numbers, parameter names, and reasons. Merge related facts instead of adding duplicates. Generic files must not acquire a project's names, dimensions, or history. Never put secrets, account IDs, or personal data in context files.
-- Do not use Claude auto-memory or `projects/*/memory/` for durable context. Move any useful facts found there into the correct authored file, then remove the redundant memory. `settings.json` disables auto-memory for launcher sessions.
 
 ## Folder and launcher rules
 
-- The portable template is `Fusion-Claude.bat`, `.mcp.json`, `settings.json`, `CLAUDE.md`, `DfAM.md`, and `Fusion-Failure-Repair.md`. Keep them together when copying the folder. The batch file also accepts a dragged project folder and copies missing template files there without overwriting existing project context.
-- The launcher keeps Claude account, login, and runtime data in Claude's normal user configuration. Do not set `CLAUDE_CONFIG_DIR` to this portable folder. Register the Fusion server in project `.mcp.json`, never a local-scope `.claude.json` tied to an absolute path. `settings.json` pre-approves the project server.
+- Keep both launchers, `Agentic-Fusion.md`, `CLAUDE.md`, `AGENTS.md`, `DfAM.md`, `Fusion-Failure-Repair.md`, `.mcp.json`, `settings.json`, and `.codex/config.toml` together when copying the template. Each launcher accepts a dragged project folder and copies missing template files without replacing existing project context.
 - Create `Reference CAD/` when source CAD files are supplied and `Output CAD/` for requested exports; the blank template needs neither directory. Overwrite the existing export file when asked to update it. If `personal logs/` exists in a project, leave it alone unless asked. Never read, print, or copy `.credentials.json`. Exclude `.credentials.json` and `.claude.json` from any template copy; they belong to one machine or account. Do not initialize Git here without the user's direction.
 - Do not put project notes outside `Project.md`, exports outside `Output CAD/`, or temporary build scripts in this portable folder. Use the session scratchpad for temporary scripts; results belong in Fusion.
-- Claude-generated `backups/`, `cache/`, `file-history/`, `session-env/`, `sessions/`, `shell-snapshots/`, `projects/`, `history.jsonl`, `.last-cleanup`, `.last-update-result.json`, `plugins/`, and `skills/` are runtime data, not part of the template. If an old in-folder configuration left them here, remove obsolete `backups/.claude.json.backup.*` and `cache/*`, past session transcripts and tool results, their file history and session environments, and project paths from old folder locations. Never delete the current session, user files, credentials, or installed Claude plugins and skills during cleanup.
 
 ## When asked for full cleaning
 
-1. Put every verified or settled lesson, including useful auto-memory content, into the proper authored file. Re-read edited files.
+1. Put every verified or settled lesson, including useful agent memory content, into the proper authored file. Re-read edited files.
 2. Remove repetition and superseded facts without losing rules, values, parameter names, error text, or reasons. First copy each file to the scratchpad; afterward check that every number, parameter name, and error string remains or was deliberately superseded.
 3. Clean only obsolete runtime data after identifying the current session. Preserve the portable files, `Project.md`, user folders, and machine or account files.
-4. Ask the user to run `/compact` if the Claude session needs compaction; Claude cannot invoke that command itself.
 
 ## Generic design rules (any design)
 - **Top-down assembly design** for assemblies expected to have more than 5 custom components:
@@ -115,10 +107,6 @@ Re-read an authored file after editing it in the same session.
 - **Explain every accepted interference baseline.** A 539 mm³ "servo vs pocket" overlap, long accepted, was a pocket 1 mm narrower than the reference, so the real servo could not fit. Compare each holder's clamped span at the fastener spots with the real part.
 
 ## Fusion MCP workflow
-- Load the tools via ToolSearch:
-  - `mcp__fusion__fusion_mcp_execute`: scripts, open/save/close documents.
-  - `mcp__fusion__fusion_mcp_read`: API docs, screenshots, document and project lists, active command.
-  - `mcp__fusion__fusion_mcp_update`: undo/redo.
 - Scripts must define `def run(_context=None):`. The harness calls it after the top-level code runs. Return output with `print()`.
 - Pass `readOnly: true` for inspection-only scripts. These are the only scripts that run while a Fusion command dialog is open; ask the user to close the dialog rather than closing it yourself.
 - **The script namespace persists between calls and exec'd helpers share it.** Set every flag and input explicitly on each call: `globals().get('X', default)` can silently reuse an old `X` (a crevice scan kept scanning one part). Give helper globals unique names: a helper's `OUT` replaced the caller's output path. For long scripts, keep the file in the scratchpad and run `exec(compile(open(p).read(), p, 'exec'))` at top level.

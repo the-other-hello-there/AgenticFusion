@@ -1,54 +1,50 @@
-# Fusion + Claude Code template
+# Agentic Fusion
 
-This repository contains a Windows template for using **Claude Code** with the **local Autodesk Fusion MCP Server**. The reusable project folder is [`FusionClaudeCodeTemplate/`](FusionClaudeCodeTemplate/); its `Fusion-Claude.bat` file is the entry point. The repository root is only for storing the template and this guide.
+A portable Windows project template for working with Autodesk Fusion's local MCP server through **Claude Code or Codex**. The reusable folder is [`AgenticFusionTemplate/`](AgenticFusionTemplate/). Run either launcher from a copy of that folder; both prepare the same project files, start Fusion if needed, wait for the MCP port, and open the chosen agent.
 
-## 1. Install the applications
+## Install Fusion and an agent
 
-1. Install the **Fusion desktop application** and sign in. Autodesk provides the installer through your [Autodesk Account's Products and Services page](https://help.autodesk.com/view/fusion360/ENU/?caas=caas%2Fsfdcarticles%2Fsfdcarticles%2FHow-to-download-Fusion-360.html). The web client cannot host the local MCP server.
-2. Install **Claude Code** on Windows. In PowerShell, run Anthropic's [native installer](https://code.claude.com/docs/en/setup):
+1. Install the [Fusion desktop application](https://help.autodesk.com/view/fusion360/ENU/?caas=caas%2Fsfdcarticles%2Fsfdcarticles%2FHow-to-download-Fusion-360.html) and sign in. The local MCP server runs in the desktop application.
+2. Install one or both agents:
+   - **Claude Code:** use Anthropic's [Windows setup guide](https://code.claude.com/docs/en/setup). In PowerShell: `irm https://claude.ai/install.ps1 | iex`. Open a new terminal and check `claude --version`.
+   - **Codex CLI:** use OpenAI's [Codex CLI guide](https://learn.chatgpt.com/docs/codex/cli) and [Windows installer](https://learn.chatgpt.com/docs/config-file/environment-variables). In PowerShell: `irm https://chatgpt.com/codex/install.ps1 | iex`. Open a new terminal and check `codex --version`.
+3. Sign in when the chosen agent first opens. Its credentials stay in its normal user profile, outside the project template.
 
-   ```powershell
-   irm https://claude.ai/install.ps1 | iex
-   ```
+## Enable Fusion MCP
 
-3. Open a new PowerShell window and run `claude --version` to confirm the CLI is on your PATH. Claude Code requires a Pro, Max, Team, Enterprise, or Console account; on first launch, follow its browser sign-in prompts. The batch file does not install Claude Code or store your account credentials in the project folder.
+In Fusion, open **Preferences > General > API** and enable **Fusion MCP Server (runs locally on this device)**. Note the port; its default is **27182**. Open the design you want to inspect or edit. See [Autodesk's connection instructions](https://help.autodesk.com/view/fusion360/ENU/?guid=ADSKMCP_FusionDesktopMcp_connecting_to_the_fusion_mcp_server_html).
 
-## 2. Enable Fusion's local MCP server
+Both project configurations target `http://127.0.0.1:27182/mcp`: Claude uses `.mcp.json`, and Codex uses `.codex/config.toml`. If Fusion displays another port, change `$McpPort` near the top of `Fusion-Claude.bat` in your project copy. This shared launcher then updates **both** project MCP entries when either batch file runs. Changing only a JSON or TOML URL will be undone by the next launcher run.
 
-In Fusion, open **Preferences > General > API** and check **Fusion MCP Server (runs locally on this device)**. Note the port shown there; the default is **27182**. Keep Fusion running and open the design you want Claude to inspect or edit. [Autodesk's connection instructions](https://help.autodesk.com/view/fusion360/ENU/?guid=ADSKMCP_FusionDesktopMcp_connecting_to_the_fusion_mcp_server_html) describe the local endpoint.
+## Start a project
 
-The template already configures Claude Code to use `http://127.0.0.1:27182/mcp` through `.mcp.json`; no separate Claude Desktop connector or Fusion add-in is needed for this setup. This is Fusion's **local desktop MCP server**, not the separate cloud-hosted Fusion Data MCP server.
+1. Copy the **inner** [`AgenticFusionTemplate/`](AgenticFusionTemplate/) folder anywhere and rename the copy for your project. You can also unpack [`AgenticFusionTemplate.zip`](AgenticFusionTemplate.zip), which contains the same project files. Keep its supplied files and `.codex/` together; leave the repository `.git/` behind.
+2. Run `Fusion-Claude.bat` for Claude Code or `Fusion-Codex.bat` for Codex. The launchers create `Project.md` only if it is missing, prepare both agents' local MCP configurations, start Fusion if needed, wait up to 120 seconds for its server, and then launch the chosen agent in the project folder. Codex may ask you to trust the project before using its project-scoped MCP configuration.
+3. In `Project.md`, record verified design intent, interfaces, parameters, document names, decisions, and open items. The two agent entry files direct their agents to read it and the shared Fusion rules.
 
-If Fusion shows a different port, edit `$McpPort` near the top of your copied `Fusion-Claude.bat` before running it. The launcher then updates that project's `.mcp.json` to the matching URL. Changing `.mcp.json` alone is insufficient because the launcher checks and rewrites its Fusion entry.
+You may drag an existing project folder onto either launcher in the template. Missing template files, including both launchers, are copied into that project without replacing existing context. To prepare files without opening Fusion or an agent, run `./Fusion-Claude.bat --setup-only` or `./Fusion-Codex.bat --setup-only` from PowerShell in a copied project folder. Each batch file uses the same setup routine.
 
-## 3. Create and open a project
+### Check the connection
 
-1. Copy the **inner** [`FusionClaudeCodeTemplate/`](FusionClaudeCodeTemplate/) folder to any location and rename the copy for your project. Keep its six supplied files together; do not copy the repository's `.git` folder. Run the batch file from the **copy** so first-run files are created in your project rather than in the clean template.
-2. Double-click **`Fusion-Claude.bat`** in the copied folder. It creates `Project.md` if absent, confirms the project MCP/settings files, starts Fusion if needed, waits up to 120 seconds for its MCP port, then starts `claude --settings settings.json` in that project folder. It does not overwrite an existing `Project.md`.
-3. Complete Claude Code sign-in or workspace trust prompts if shown. In `Project.md`, record this design's intent, interfaces, important parameters, decisions, and Fusion document names. The supplied `CLAUDE.md` loads that file at session start.
+Inside the chosen agent, check `/mcp` for the `fusion` server. From a terminal in the project folder, `claude mcp list` or `codex mcp list` can also inspect configured servers. A safe first prompt is: “List the active Fusion document and its components without changing the design.” See the [Claude MCP guide](https://code.claude.com/docs/en/mcp) and [Codex MCP guide](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
 
-You can instead **drag an existing project folder onto the template's `Fusion-Claude.bat`**. The launcher copies missing template files into that folder without replacing existing project context, then opens it. To initialize a copied project without opening Fusion or Claude, run `.\Fusion-Claude.bat --setup-only` in PowerShell from that project's folder.
+If the server is disconnected, check that Fusion is running, its MCP option is enabled, a design is open, and the Fusion port matches `$McpPort`. If Fusion cannot be found automatically, start it yourself or set `$FusionPath` in `Fusion-Claude.bat` to its launcher path. If an agent executable is missing, reopen the terminal and check its version command. Codex project MCP settings load only after the project is trusted; if the server is absent from `codex mcp list`, check trust and restart Codex from the project folder.
 
-## Check the connection
+## Project files
 
-Inside Claude Code, run `/mcp` and check that `fusion` is connected. A safe first request is: "List the active Fusion document and its components without changing the design." Claude Code's [MCP guide](https://code.claude.com/docs/en/mcp) also documents `claude mcp list` from a terminal in the project folder.
-
-If `fusion` is disconnected, confirm that Fusion is open, its MCP checkbox is enabled, a design is open, and the Fusion port matches `$McpPort`. If the launcher cannot find Fusion, start Fusion yourself before the batch file or set `$FusionPath` near the top of the batch file to its launcher path. If `claude` is not found, reopen PowerShell and run `claude --version`; Anthropic's [setup guide](https://code.claude.com/docs/en/setup) includes PATH troubleshooting and `claude doctor`.
-
-## What the project folder contains
-
-| File | Purpose |
+| File | Role |
 | --- | --- |
-| `Fusion-Claude.bat` | Initializes the project and launches Fusion and Claude Code. |
-| `.mcp.json` | Project-scoped connection to Fusion's local MCP endpoint. |
-| `settings.json` | Claude Code model and project MCP settings. |
-| `CLAUDE.md` | Always-loaded Fusion design, modeling, and MCP guidance. |
-| `DfAM.md` | Printing guidance read when a task concerns fabrication. |
-| `Fusion-Failure-Repair.md` | Troubleshooting guidance read when a failure occurs. |
-| `Project.md` | Created on first run for this project's own context and decisions. |
+| `Fusion-Claude.bat`, `Fusion-Codex.bat` | Shared first-run setup and Fusion startup; launch the chosen agent. |
+| `Agentic-Fusion.md` | Shared, always-used Fusion design, modeling, MCP, saving, and document rules. |
+| `CLAUDE.md`, `AGENTS.md` | Small agent-specific startup and tool instructions. |
+| `.mcp.json`, `settings.json` | Claude Code project MCP and agent settings. |
+| `.codex/config.toml` | Codex project MCP connection. |
+| `DfAM.md` | Printing guidance loaded for fabrication tasks. |
+| `Fusion-Failure-Repair.md` | Symptom-specific repair guidance loaded after failures. |
+| `Project.md` | Created on first run for this design's verified context and decisions. |
 
-Fusion designs remain in Fusion's documents. Claude Code login and runtime data remain in its normal user configuration, outside the portable project folder.
+Fusion designs remain in Fusion's documents. Do not put agent credentials or generated agent runtime folders into a project copy.
 
 ## Benchmarking
 
-See the [benchmark prompts and results sheet](Benchmarking/Readme.md) for repeatable tests and fields to record time, credit usage, and result quality by version.
+Use the [benchmark prompts and results sheet](Benchmarking.md) to record time, usage, and result quality by template and agent version.
