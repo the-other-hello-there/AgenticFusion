@@ -1,18 +1,18 @@
 ---
 name: fusion-model
-description: Inspect with scripts, build, edit, and verify parametric Autodesk Fusion designs through the local MCP server. Use for modeling, timeline edits, components, sketches, features, and saved design changes.
+description: Inspect, model, edit, and verify parametric Fusion designs through the local MCP server; includes timelines, components, sketches, and features.
 ---
 
 # Fusion modeling
 
-Read the `Current state` section and task-relevant details in `Project.md`, plus the always-used rules in `Agentic-Fusion.md`. Preserve design intent, parameter relationships, and downstream feature health. Load only the reference that matches the operation:
+Use `Project.md`'s `Current state` and task-relevant details with `Agentic-Fusion.md`. Preserve design intent, parameter relationships, and downstream health. Load only matching references:
 
-- [Design and assembly checks](references/design-and-assembly.md): purchased-part fit, retention, installation paths, fasteners, and other assembly-specific checks.
-- [MCP workflow](references/mcp.md): executing Fusion scripts, save and export timing, screenshots, and verification of tool results. Read when scripting, saving, or exporting.
-- [Timeline](references/timeline.md): rollbacks, inserting or moving features, parameter flex checks, and timeline health.
-- [Reusable helpers](references/helpers.md): scratchpad functions, parameter flex tests, geometry analysis, section properties, feature provenance, and screenshots. Read for a matching analysis or verification step.
-- [Components](references/components.md): documents, components, occurrences, joints, assembly context, parameters, and interference APIs.
-- [Sketches and features](references/sketches-and-features.md): sketch constraints and feature creation or editing.
-- [Fillets](references/fillets.md): creating or editing fillets and chamfers when edge references matter.
+- [Design and assembly](references/design-and-assembly.md): workflow choice, loads, shape cleanup, motion, purchased-part fit, retention, installation, fasteners.
+- [MCP workflow](references/mcp.md): scripts, save/export timing, tool results.
+- [Timeline](references/timeline.md): placement, rollback, reordering, flex tests, health.
+- [Helpers](references/helpers.md): scratchpad functions, analysis, provenance, screenshots.
+- [Components](references/components.md): documents, occurrences, joints, contexts, parameters, interference APIs.
+- [Sketches and features](references/sketches-and-features.md): constraints, creation, editing.
+- [Fillets](references/fillets.md): edge-based fillets and chamfers.
 
-Use the `fusion-print` skill for printing rules and `fusion-repair` for an observed failure. Design-specific decisions stay in `Project.md`; do not copy reference procedures into it.
+Use `fusion-print` for printing and `fusion-repair` for observed failures. Keep design-specific decisions in `Project.md`, not reference procedures.

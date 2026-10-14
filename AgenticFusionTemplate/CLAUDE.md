@@ -1,10 +1,10 @@
 # Claude Code + Agentic Fusion
 
-Run `Fusion-Claude.bat` to initialize this portable project, start Fusion, wait for its local MCP server, and launch Claude Code with project `settings.json`. The same project can be opened with Codex through `Fusion-Codex.bat`.
+Run `Fusion-Claude.bat` to initialize the project, start Fusion, wait for its local MCP server, and launch Claude Code with `settings.json`. `Fusion-Codex.bat` opens the same project in Codex.
 
-At session start, read the short shared `Agentic-Fusion.md` guide and the `Current state` section of `Project.md`. If that section is missing, scan the project's headings and read only the sections needed for the request. Do not import either file in full through `@` directives.
+Each session, read `Agentic-Fusion.md` and `Project.md`'s `Current state`; if absent, scan headings and read relevant sections only. Do not import either file through `@` directives.
 
-Follow the shared decision path. The launcher loads the shared `agentic-fusion` plugin from `.agents/`; it contains `fusion-model`, `fusion-print`, and `fusion-repair`. Invoke the relevant skill for modeling, printing, or an observed failure, and read only its needed references. Do not import skill bodies or references at session start.
+Follow the shared decision path. The launcher loads `.agents/` as the `agentic-fusion` plugin; invoke `fusion-model`, `fusion-print`, or `fusion-repair` as needed and read only relevant references. Do not import skills at startup.
 
 ## Claude Code tool and configuration rules
 
@@ -12,7 +12,7 @@ Follow the shared decision path. The launcher loads the shared `agentic-fusion` 
   - `mcp__fusion__fusion_mcp_execute`: scripts, open/save/close documents.
   - `mcp__fusion__fusion_mcp_read`: API docs, screenshots, document and project lists, active command.
   - `mcp__fusion__fusion_mcp_update`: undo/redo.
-- The launcher keeps Claude account, login, and runtime data in Claude's normal user configuration. Do not set `CLAUDE_CONFIG_DIR` to this portable folder. Register Fusion in project `.mcp.json`, never a local-scope `.claude.json` tied to an absolute path. `settings.json` enables the project server.
-- Do not use Claude auto-memory or `projects/*/memory/` for durable context. Move useful facts found there into the correct authored file, then remove redundant memory. `settings.json` disables auto-memory for launcher sessions.
-- Claude-generated `backups/`, `cache/`, `file-history/`, `session-env/`, `sessions/`, `shell-snapshots/`, `projects/`, `history.jsonl`, `.last-cleanup`, `.last-update-result.json`, `plugins/`, and `skills/` are runtime data, not part of the template. If an old in-folder configuration left them here, remove obsolete `backups/.claude.json.backup.*` and `cache/*`, past session transcripts and tool results, their file history and session environments, and project paths from old folder locations. Never delete the current session, user files, credentials, or installed Claude plugins and skills during cleanup.
-- If the Claude session needs compaction during full cleaning, ask the user to run `/compact`; Claude cannot invoke that command itself.
+- Keep Claude account, login, and runtime data in its normal user configuration; never set `CLAUDE_CONFIG_DIR` here. Register Fusion in project `.mcp.json`, not a path-bound local `.claude.json`; `settings.json` enables it.
+- Do not use Claude auto-memory or `projects/*/memory/` for durable context. Move useful facts into the correct authored file, then remove redundant memory. `settings.json` disables auto-memory for launcher sessions.
+- Claude-generated `backups/`, `cache/`, `file-history/`, `session-env/`, `sessions/`, `shell-snapshots/`, `projects/`, `history.jsonl`, `.last-cleanup`, `.last-update-result.json`, `plugins/`, and `skills/` are runtime data, not template files. From an old in-folder configuration, remove obsolete `backups/.claude.json.backup.*`, `cache/*`, past transcripts, tool results, file history, session environments, and project paths from old locations. Preserve the current session, user files, credentials, and installed plugins and skills.
+- If a Claude session needs compaction during full cleanup, ask the user to run `/compact`; Claude cannot invoke it.

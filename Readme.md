@@ -1,6 +1,6 @@
 # Agentic Fusion
 
-A portable Windows project template for working with Autodesk Fusion's local MCP server through **Claude Code or Codex**. The reusable folder is [`AgenticFusionTemplate/`](AgenticFusionTemplate/). Run either launcher from a copy of that folder; both prepare the same project files, start Fusion if needed, wait for the MCP port, and open the chosen agent.
+A portable Windows folder for Autodesk Fusion's local MCP server with **Claude Code or Codex**. Copy [`AgenticFusionTemplate/`](AgenticFusionTemplate/) for each project; either launcher prepares shared files and starts Fusion and the chosen agent.
 
 ## Install Fusion and an agent
 
@@ -19,16 +19,16 @@ Both project configurations target `http://127.0.0.1:27182/mcp`: Claude uses `.m
 ## Start a project
 
 1. Copy the **inner** [`AgenticFusionTemplate/`](AgenticFusionTemplate/) folder anywhere and rename the copy for your project. Keep its supplied files, `.agents/`, and `.codex/` together; leave the repository `.git/` behind.
-2. Run `Fusion-Claude.bat` for Claude Code or `Fusion-Codex.bat` for Codex. The launchers create `Project.md` only if it is missing, prepare both agents' local MCP configurations, start Fusion if needed, wait up to 120 seconds for its server, and then launch the chosen agent in the project folder. Codex may ask you to trust the project before using its project-scoped MCP configuration.
+2. Run `Fusion-Claude.bat` or `Fusion-Codex.bat`. Either launcher creates missing `Project.md`, prepares both agents' MCP configurations, starts Fusion if needed, waits up to 120 seconds for its server, and opens the selected agent. Codex may ask you to trust the project before loading its MCP configuration.
 3. In `Project.md`, keep the `Current state` section concise and record verified design intent, interfaces, parameters, document names, decisions, and open items. The two agent entry files direct their agents to read that section and the short shared Fusion guide.
 
-The Claude launcher loads `.agents/` as a local plugin with `--plugin-dir`; Codex discovers the same skill files in `.agents/skills/`. Launch Claude through `Fusion-Claude.bat` to make the shared skills available. The short shared guide routes modeling, printing, and repair to one physical set of skills used by both agents. Each skill reads detailed references only when the task needs them. Claude's `CLAUDE.md` does not automatically import the full `Project.md`.
+Claude loads `.agents/` through `--plugin-dir`; Codex discovers the same physical skill files in `.agents/skills/`. Use the Claude launcher to load its plugin. Both agents load detailed references only when needed; `CLAUDE.md` does not auto-import all of `Project.md`.
 
-You may drag an existing project folder onto either launcher in the template. Missing template files, including both launchers, are copied into that project without replacing existing context. To prepare files without opening Fusion or an agent, run `./Fusion-Claude.bat --setup-only` or `./Fusion-Codex.bat --setup-only` from PowerShell in a copied project folder. Each batch file uses the same setup routine.
+Drag an existing project folder onto either template launcher to copy missing files, including both launchers, without replacing context. In a copied folder, run `./Fusion-Claude.bat --setup-only` or `./Fusion-Codex.bat --setup-only` to prepare files without opening Fusion or an agent; both use the same setup routine.
 
-An older project copy keeps its existing launcher and instruction files during setup. To remove Claude's instruction-size overflow in an older copy, update its `CLAUDE.md` to remove `@Project.md` and `@Agentic-Fusion.md`, then bring over the short shared guide and skill routing after preserving project-specific edits. Setup copies missing skills but does not replace existing context. If `Project.md` is large, follow the shared guide's cleanup rule; retain current facts there and index any necessary historical detail in `Project-History/`.
+Setup preserves an older copy's launcher and instruction files. To fix Claude's instruction-size overflow, remove `@Project.md` and `@Agentic-Fusion.md` from its `CLAUDE.md`, then bring over current guide and skill routing while preserving project-specific edits. Setup copies missing skills only. If `Project.md` is large, keep current facts there and index needed history in `Project-History/` per the shared cleanup rule.
 
-The shared launcher warns when `Project.md` exceeds the 40,000-character target. For Claude, it also detects legacy full-file imports and stops before launch if their combined text exceeds the observed 150,000-character instruction limit. It does not rewrite existing project context.
+The launcher warns above the 40,000-character `Project.md` target. For Claude, it detects legacy full-file imports and stops before their combined text exceeds the observed 150,000-character instruction limit. It never rewrites existing context.
 
 ### Check the connection
 
