@@ -127,6 +127,14 @@ function Initialize-ProjectFiles {
         'Fusion-Claude.bat', 'Fusion-Codex.bat', 'Agentic-Fusion.md', 'DfAM.md', 'CLAUDE.md', 'AGENTS.md',
         '.mcp.json', 'settings.json', '.codex\config.toml',
         '.agents\.claude-plugin\plugin.json',
+        '.agents\skills\fusion-model\SKILL.md',
+        '.agents\skills\fusion-model\references\design-and-assembly.md',
+        '.agents\skills\fusion-model\references\mcp.md',
+        '.agents\skills\fusion-model\references\timeline.md',
+        '.agents\skills\fusion-model\references\helpers.md',
+        '.agents\skills\fusion-model\references\components.md',
+        '.agents\skills\fusion-model\references\sketches-and-features.md',
+        '.agents\skills\fusion-model\references\fillets.md',
         '.agents\skills\fusion-print\SKILL.md',
         '.agents\skills\fusion-print\references\sizes-and-fits.md',
         '.agents\skills\fusion-print\references\overhangs-and-bed.md',
@@ -154,15 +162,22 @@ function Initialize-ProjectFiles {
     $projectFile = Join-Path $ProjectDir 'Project.md'
     if (-not (Test-Path -LiteralPath $projectFile)) {
         $starter = @'
-# Project.md: TBD
+# Project: TBD
 
-This file holds the design intent and decisions for this design only. See `Agentic-Fusion.md` for placement rules.
+## Current state
 
-## Document and structure
-- **TBD**
+- **Design purpose:** TBD
+- **Active Fusion document:** TBD
+- **Interfaces and constraints:** TBD
+- **Key parameters and expressions:** TBD
+- **Accepted decisions and verified geometry:** TBD
+- **Open items:** TBD
 
-## Design intent
-- **TBD**
+This file holds the current design intent and decisions for this design only. Keep this section concise and see `Agentic-Fusion.md` for context size and placement rules.
+
+## Details index
+
+- Add links to deeper sections here only when this project needs them.
 '@
         $utf8 = New-Object System.Text.UTF8Encoding($false)
         [System.IO.File]::WriteAllText($projectFile, ($starter + "`n"), $utf8)
@@ -230,6 +245,39 @@ function Ensure-ProjectSettings {
     return $file
 }
 
+function Test-ContextBudget {
+    $projectFile = Join-Path $ProjectDir 'Project.md'
+    $projectChars = [System.IO.File]::ReadAllText($projectFile).Length
+    if ($projectChars -gt 40000) {
+        Write-Warning "Project.md has about $projectChars characters; the shared guide targets 40,000. Preserve unique facts while cleaning it."
+    }
+
+    if ($env:AGENT -ne 'claude') { return $true }
+    $claudeFile = Join-Path $ProjectDir 'CLAUDE.md'
+    $claudeText = [System.IO.File]::ReadAllText($claudeFile)
+    $importChars = $claudeText.Length
+    $legacyImports = @()
+    foreach ($name in @('Agentic-Fusion.md', 'Project.md')) {
+        if ($claudeText -match "(?m)^\s*@$([regex]::Escape($name))\s*$") {
+            $legacyImports += $name
+            $importChars += [System.IO.File]::ReadAllText((Join-Path $ProjectDir $name)).Length
+        }
+    }
+    if ($legacyImports.Count -gt 0) {
+        Write-Warning "This copy's CLAUDE.md still imports $($legacyImports -join ' and ') in full. Update it to use the short shared guide and selective Project.md reading."
+    }
+    if ($importChars -gt 150000) {
+        if ($env:SETUP_ONLY -eq '1') {
+            Write-Warning "A Claude launch would be stopped: these instruction files total about $importChars characters, above the observed 150,000-character limit. The existing files were not changed."
+        }
+        else {
+            Write-Host "Claude launch stopped: these instruction files total about $importChars characters, above the observed 150,000-character limit. The existing files were not changed." -ForegroundColor Red
+        }
+        return $false
+    }
+    return $true
+}
+
 function Start-AgenticFusion {
     $ErrorActionPreference = "Stop"
 
@@ -242,10 +290,12 @@ function Start-AgenticFusion {
     Ensure-ProjectMcp
     Ensure-CodexMcp
     $settingsFile = Ensure-ProjectSettings
+    $contextFits = Test-ContextBudget
     if ($env:SETUP_ONLY -eq '1') {
         Write-Host "Project initialized: $ProjectDir" -ForegroundColor Green
         return
     }
+    if (-not $contextFits) { return }
 
     if ($env:AGENT -eq 'codex') {
         if (-not (Confirm-Codex)) {

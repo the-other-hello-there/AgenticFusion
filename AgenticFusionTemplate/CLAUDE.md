@@ -2,12 +2,9 @@
 
 Run `Fusion-Claude.bat` to initialize this portable project, start Fusion, wait for its local MCP server, and launch Claude Code with project `settings.json`. The same project can be opened with Codex through `Fusion-Codex.bat`.
 
-Read the shared Fusion rules and this project's design context at session start:
+At session start, read the short shared `Agentic-Fusion.md` guide and the `Current state` section of `Project.md`. If that section is missing, scan the project's headings and read only the sections needed for the request. Do not import either file in full through `@` directives.
 
-@Agentic-Fusion.md
-@Project.md
-
-Follow the shared decision path in `Agentic-Fusion.md`. The launcher loads the shared `agentic-fusion` plugin from `.agents/`; it contains `fusion-print` and `fusion-repair`. Invoke the relevant skill only for a printing task or an observed failure, and read only its needed references. Keep preventive rules in the shared guide. Do not import skill bodies or references at session start.
+Follow the shared decision path. The launcher loads the shared `agentic-fusion` plugin from `.agents/`; it contains `fusion-model`, `fusion-print`, and `fusion-repair`. Invoke the relevant skill for modeling, printing, or an observed failure, and read only its needed references. Do not import skill bodies or references at session start.
 
 ## Claude Code tool and configuration rules
 

@@ -5,7 +5,7 @@ description: Review or improve a Fusion design for FFF 3D printing. Use for prin
 
 # Fusion printing
 
-Read `Project.md` for this design's verified intent and print decisions. Preserve its function and the preventive rules in `Agentic-Fusion.md`. Put design-specific orientation and open printability decisions in `Project.md`. When they conflict, design intent and function take precedence over general design rules, which take precedence over printing preferences. Assembly symmetry takes precedence over a printing tweak that would break it.
+Read the `Current state` section and relevant print decisions in `Project.md`. Preserve its function and the preventive rules in `Agentic-Fusion.md`. Put design-specific orientation and open printability decisions in `Project.md`. When they conflict, design intent and function take precedence over general design rules, which take precedence over printing preferences. Assembly symmetry takes precedence over a printing tweak that would break it.
 
 The FFF rule baseline is Hydra Research's design rules. Size rules assume about 0.45 mm extrusion line width with a 0.4 mm nozzle; scale them with the actual nozzle. Ask for layer height or nozzle when relevant, and use 0.2 mm (`dfm_layer`) for layer-based features until the user supplies one. A stricter user rule wins.
 
