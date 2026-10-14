@@ -4,7 +4,7 @@
   - `dfm_layer` (0.2 mm until the user gives one);
   - `dfm_base_ch` (0.3 mm);
   - `dfm_bridge_max` (10 mm);
-  - `dfm_ovh_ang` (35°, minimum slope from horizontal of unsupported down-facing faces; see [overhangs-and-bed.md](overhangs-and-bed.md)).
+  - `dfm_ovh_ang` (the project-recorded minimum slope from horizontal of unsupported down-facing faces; see [overhangs-and-bed.md](overhangs-and-bed.md)).
 - **Print orientation ("reorient for 3D printing"):**
   1. **Don't break the assembly.** Put one instance of each printed component in a separate grounded root component ("Print Layout") with `addExistingComponent`, set `isGroundToParent` on its children, and add no joints. Never move the assembled instances. Leave out purchased parts.
   2. Rest every part on Z = 0, in a grid with a gap of about 12 mm and the longer footprint side along X.

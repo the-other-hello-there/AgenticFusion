@@ -1,7 +1,7 @@
 # Overhangs, holes, bed contact, and support
 
 **Overhangs and bridges**
-- **Overhangs (user):** the slicer's support threshold angle is 30°, measured from horizontal (Bambu/Orca convention: faces flatter than that get support). Design every unsupported down-facing face at least 35° from horizontal (≤ 55° from vertical; `dfm_ovh_ang`) for a 5° margin. This replaces Hydra's 50° from vertical. Teardrop flanks keep their own rule (Holes).
+- **Overhangs:** record the slicer's support threshold and angle convention in `Project.md`. Set `dfm_ovh_ang` to a slope from horizontal beyond that threshold by the project's chosen margin, and design unsupported down-facing faces to meet it. The project target may override Hydra's 50° from vertical. Teardrop flanks keep their own rule (Holes).
 - **Bridges:** 10 mm or less.
 - **Unsupported horizontal edges:** 0.9 mm wide or less. The slicer still supports a narrow down-facing strip (e.g. a 0.5 mm relief step), often with a tall support column under it. Give such a strip a 45° underside fill instead, keeping whatever the step relieves.
 - **Inside-corner chamfers:** an equal-distance chamfer is 45° (self-supporting) only between a near-vertical wall and a ceiling. Between a ceiling and a sloped face, it bisects them (67.5° against a 45° face). That's acceptable only where the ceiling already needs support.

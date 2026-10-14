@@ -30,7 +30,7 @@ When the user says "iterative DfAM improvement" (alter the design toward the app
      - Find concave edges and key them by the feature pair of their two faces (feature provenance, `Agentic-Fusion.md`). At the edge midpoint, take t1 = tangent × n1, flipped so it points into face 1 (check with `isParameterOnFace`). The edge is concave if t1·n2 > 0.05 and the normals differ by more than 5°.
      - Exclude functional corners: holes, teardrops, bridge steps, pockets that seat purchased parts, servo walls, bed chamfers, and datum or seat corners that locate a mating part.
      - **No universal rule for corners (user):** decide each one by whether a round or chamfer helps or harms printing and function. Round a load-path junction where the round won't face down in print; otherwise use an equal-distance chamfer. Leave it sharp where it is a seat, fit or clearance.
-     - Check the whole edge, not its midpoint: sample the round's normals (interpolated between the two face normals) and the chamfer normal along the edge against down. A root corner around a boss whose axis lies parallel to the bed has a near-horizontal round face at the bottom (4–7° measured), while a 45° chamfer prints there.
+     - Check the whole edge, not its midpoint: sample the round's normals (interpolated between the two face normals) and the chamfer normal along the edge against down. A root corner around an axis parallel to the bed can have a near-horizontal round face at the bottom, while a chamfer may print without support.
      - Measure the distance from the edge proxy to every body in each assembled instance (`measureMinimumDistance`); a bisector point probe missed a seated part. A neighbour within about 1.2 mm makes it a seat or clearance.
      - Apply blends on parts being reprinted anyway. On unchanged reference parts with low nominal stress, offer them instead: they force reprints.
      - Confirm every blend changed the volume by the expected amount (90° round: L·r²·(1 − π/4); 45° chamfer: area × circumference at its centroid). A dV of 0 means the "corner" was a zero-area sliver between nearly coplanar faces.
@@ -52,17 +52,13 @@ When the user says "iterative DfAM improvement" (alter the design toward the app
      - downward fillet → chamfer;
      - slope ledges to 50° or less;
      - **convex rounds that curl under toward the bed** (a sleeve's outer end round meeting the bed tangentially): keep the inside round and make the outside flat (user). Join a quadrilateral per round: the bed point under the centre → the bed point of the tangent → the tangent point, where the outer normal is `90° − dfm_td_ang` from down → a mid-wall point on the same radius. Use parameter-expression vertices, extrude over the round's depth, and insert it before the bed chamfer. It adds material: check it with the support-policy test and the box sweep in `Agentic-Fusion.md` (Verify motion);
-     - **low-angle ramps rising from the bed** (e.g. a tapered finger's underside at 20°): keep the bed contact flat further out, then rise at `dfm_ovh_ang` to where the ramp meets the next self-supporting face. That's the least material. This removes the support wedge and deepens the section. It adds material: run the support-policy test, the joint sweeps, and clearance to external parts the part reaches into. End the new face exactly on any existing steeper plane nearby (e.g. a 45° tip-trim cut). A parallel face about 1 mm off it leaves a step and a knife edge where the other cut's sketch ends;
-     - **ceilings under walls that stand beside a box** (wall bottoms above the bed): a `dfm_ovh_ang` gusset from the box side to the wall's outer edge. Start it at the tangent line of any bed corner round on the box side; a lower start leaves a 0.1–0.4 mm slit against the round. Raise the wall's lower end chamfer to the gusset start (removal only, as long as it stays ≥ `dfm_ovh_ang`), so the two meet in one edge instead of leaving a 1–2 mm strip;
+     - **low-angle ramps rising from the bed:** keep the bed contact flat further out, then rise at `dfm_ovh_ang` to where the ramp meets the next self-supporting face. This removes the support wedge and deepens the section. It adds material: run the support-policy test, joint sweeps, and clearance to external parts the part reaches into. End the new face exactly on any existing steeper plane nearby; an offset parallel face leaves a step and knife edge where the next cut ends;
+     - **ceilings under walls that stand beside a box** (wall bottoms above the bed): a `dfm_ovh_ang` gusset from the box side to the wall's outer edge. Start it at the tangent line of any bed corner round on the box side; a lower start leaves a slit against the round. Raise the wall's lower end chamfer to the gusset start (removal only, as long as it stays ≥ `dfm_ovh_ang`), so the two meet in one edge instead of leaving a strip;
      - teardrops;
      - bridge steps;
      - shorten bridges or add a mid-span pillar;
      - split the part with a printed-to-printed joint;
      - add self-supporting ribs;
      - otherwise accept support.
-5. **Verify:**
-   - body count and health;
-   - the volume change matches the hand calculation (e.g. a 45° teardrop cap is 0.2146·r² per unit length; a truncated cap subtracts the roof triangle);
-   - screenshots in print orientation;
-   - a full flex test with exact volume restore. Warnings that appear only while flexed are acceptable if restore is clean.
+5. **Verify:** use the full build, flex and saved-readback checks in `Agentic-Fusion.md`, including active warning states and exact restore. Confirm the volume change against the hand calculation (e.g. a 45° teardrop cap is 0.2146·r² per unit length; a truncated cap subtracts the roof triangle) and take screenshots in print orientation.
 6. **Save** a new version with a message listing the changes. Record the design's state and open items in `Project.md`, then report.

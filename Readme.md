@@ -40,6 +40,7 @@ If the server is disconnected, check that Fusion is running, its MCP option is e
 | --- | --- |
 | `Fusion-Claude.bat`, `Fusion-Codex.bat` | Shared first-run setup and Fusion startup; launch the chosen agent. |
 | `Agentic-Fusion.md` | Shared, always-used Fusion design, modeling, MCP, saving, and document rules. |
+| `DfAM.md` | Optional protocol for a requested broad DfAM assessment; technical methods stay in the shared printing skill. |
 | `CLAUDE.md`, `AGENTS.md` | Small agent-specific startup and tool instructions. |
 | `.mcp.json`, `settings.json` | Claude Code project MCP and agent settings. |
 | `.codex/config.toml` | Codex project MCP connection. |

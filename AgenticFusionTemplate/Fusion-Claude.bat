@@ -124,7 +124,7 @@ function Write-ProjectJson {
 
 function Initialize-ProjectFiles {
     $portable = @(
-        'Fusion-Claude.bat', 'Fusion-Codex.bat', 'Agentic-Fusion.md', 'CLAUDE.md', 'AGENTS.md',
+        'Fusion-Claude.bat', 'Fusion-Codex.bat', 'Agentic-Fusion.md', 'DfAM.md', 'CLAUDE.md', 'AGENTS.md',
         '.mcp.json', 'settings.json', '.codex\config.toml',
         '.agents\.claude-plugin\plugin.json',
         '.agents\skills\fusion-print\SKILL.md',
