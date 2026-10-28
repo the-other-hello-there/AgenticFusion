@@ -24,6 +24,8 @@ Both project configurations target `http://127.0.0.1:27182/mcp`: Claude uses `.m
 
 Claude loads `.agents/` through `--plugin-dir`; Codex discovers the same physical skill files in `.agents/skills/`. Use the Claude launcher to load its plugin. Both agents load detailed references only when needed; `CLAUDE.md` does not auto-import all of `Project.md`.
 
+Both agents play a short Windows tone when their main agent finishes a response. Claude's plugin and Codex's project hook call the same `.agents/scripts/task-complete.ps1`; no instruction text or model call is involved. Codex requires project trust and a one-time review of the hook through `/hooks` before it runs. Start either agent through its launcher from the project folder.
+
 Drag an existing project folder onto either template launcher to copy missing files, including both launchers, without replacing context. In a copied folder, run `./Fusion-Claude.bat --setup-only` or `./Fusion-Codex.bat --setup-only` to prepare files without opening Fusion or an agent; both use the same setup routine.
 
 Setup preserves an older copy's launcher and instruction files. To fix Claude's instruction-size overflow, remove `@Project.md` and `@Agentic-Fusion.md` from its `CLAUDE.md`, then bring over current guide and skill routing while preserving project-specific edits. Setup copies missing skills only. If `Project.md` is large, keep current facts there and index needed history in `Project-History/` per the shared cleanup rule.
@@ -50,10 +52,11 @@ If the server is disconnected, check that Fusion is running, its MCP option is e
 | `.agents/skills/fusion-print/` | Shared printing skill with references loaded by task: design rules, orientation, scan, and improvement. |
 | `.agents/skills/fusion-repair/` | Shared repair skill with references loaded by failure type. |
 | `.agents/.claude-plugin/plugin.json` | Lets the Claude launcher load those same skill files as a local plugin. Codex discovers them in `.agents/skills/`. |
+| `.agents/scripts/task-complete.ps1`, `.agents/hooks/hooks.json`, `.codex/hooks.json` | One completion tone with agent-specific Stop hook declarations. |
 | `Project.md` | Created on first run for this design's verified context and decisions. |
 
 Fusion designs remain in Fusion's documents. Do not put agent credentials or generated agent runtime folders into a project copy.
 
 ## Benchmarking
 
-Use the [benchmark prompts and results sheet](Benchmarking.md) to record time, usage, and result quality by template and agent version.
+Run [Run-Benchmark.bat](Benchmarking/Run-Benchmark.bat) to benchmark a fresh, disposable copy of the inner template. The guide opens the chosen agent, walks through B1–B7, times each prompt, and asks before adding results to [Benchmarking.md](Benchmarking/Benchmarking.md). Close the agent window before finishing so the temporary local copy can be deleted. Use a disposable Fusion project too; deleting the local copy does not remove Fusion cloud documents.

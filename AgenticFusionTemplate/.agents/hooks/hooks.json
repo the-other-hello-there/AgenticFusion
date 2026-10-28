@@ -1,0 +1,17 @@
+{
+  "description": "Play the shared completion tone after a Claude Code response.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe",
+            "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${CLAUDE_PLUGIN_ROOT}/scripts/task-complete.ps1"],
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

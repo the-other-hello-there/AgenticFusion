@@ -1,0 +1,16 @@
+{
+  "description": "Play the shared completion tone after a Codex turn.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .agents\\scripts\\task-complete.ps1",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

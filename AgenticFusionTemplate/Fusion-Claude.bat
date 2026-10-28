@@ -126,6 +126,7 @@ function Initialize-ProjectFiles {
     $portable = @(
         'Fusion-Claude.bat', 'Fusion-Codex.bat', 'Agentic-Fusion.md', 'DfAM.md', 'CLAUDE.md', 'AGENTS.md',
         '.mcp.json', 'settings.json', '.codex\config.toml',
+        '.codex\hooks.json', '.agents\hooks\hooks.json', '.agents\scripts\task-complete.ps1',
         '.agents\.claude-plugin\plugin.json',
         '.agents\skills\fusion-model\SKILL.md',
         '.agents\skills\fusion-model\references\design-and-assembly.md',

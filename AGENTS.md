@@ -6,4 +6,4 @@ The repository root is for template maintenance; only the inner folder is distri
 
 Keep skill entrypoints short and load detailed references when their procedures are needed. Maintain one physical set of skill files that both Codex and Claude Code can use. Favor sound parametric design: edit controlling sketches or features when appropriate, place new features at their logical timeline position, derive dimensions from a small set of meaningful parameters, and verify downstream features.
 
-When changing the template, check both launchers' setup-only behavior in a fresh copy. `Benchmarking.md` describes behavioral checks. Keep assessment notes and generated agent runtime data out of the distributable folder.
+When changing the template, check both launchers' setup-only behavior in a fresh copy. `Benchmarking/Benchmarking.md` describes behavioral checks. Keep assessment notes and generated agent runtime data out of the distributable folder.
