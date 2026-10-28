@@ -60,3 +60,7 @@ Fusion designs remain in Fusion's documents. Do not put agent credentials or gen
 ## Benchmarking
 
 Run [Run-Benchmark.bat](Benchmarking/Run-Benchmark.bat) to benchmark a fresh, disposable copy of the inner template. The guide opens the chosen agent, walks through B1–B7, times each prompt, and asks before adding results to [Benchmarking.md](Benchmarking/Benchmarking.md). Close the agent window before finishing so the temporary local copy can be deleted. Use a disposable Fusion project too; deleting the local copy does not remove Fusion cloud documents.
+
+## OrcaSlicer exploration
+
+The [OrcaSlicer feasibility study](Explorations/OrcaSlicer/README.md) compares an optional MCP integration in the shared project folder with a separate slicing folder. It includes inactive configurations for both agents, a local environment probe, and a setup compatibility check. Live slicing remains unverified.

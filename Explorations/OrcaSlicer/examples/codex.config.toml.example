@@ -1,0 +1,6 @@
+# Example for a running okets/OrcaMCP build, not stock OrcaSlicer.
+[mcp_servers.fusion]
+url = "http://127.0.0.1:27182/mcp"
+
+[mcp_servers.orcaslicer]
+url = "http://127.0.0.1:13618/mcp"
