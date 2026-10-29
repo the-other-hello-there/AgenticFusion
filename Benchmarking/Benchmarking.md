@@ -6,6 +6,8 @@ Run `Run-Benchmark.bat` from this folder for a guided Windows benchmark. It copi
 
 For maintenance checks without an installed slicer, run `py -3 Benchmarking/Test-OrcaSlicer.py` and `powershell.exe -NoProfile -ExecutionPolicy Bypass -File Explorations/OrcaSlicer/Test-CombinedSetup.ps1` from the repository root. These check the shared Orca startup/configuration helper against mock MCP and disposable project copies; they are not live slicing scores.
 
+Run `py -3 Benchmarking/Test-PrinterLibrary.py` for printer catalog/preset transfer checks. The combined setup check also verifies that both launchers preserve an existing printer library.
+
 Run these in order in a **disposable Fusion project** using a fresh copy of the template for each version you compare. Start the chosen agent through `Fusion-Claude.bat` or `Fusion-Codex.bat`, open a new blank Fusion design before B1, and keep the same project and design through B6. Before B3, select one mounting-hole feature in Fusion's timeline. Before B7, close the agent and reopen it through the same batch file. Start timing when you send each prompt and stop when the agent finishes its answer; record the change in the credit or usage measure you have available. Keep the same measurement method across versions. Do not include your own preparation or review time.
 
 ### B1 — Connection and read-only inspection

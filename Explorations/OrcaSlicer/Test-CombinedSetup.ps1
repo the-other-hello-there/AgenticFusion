@@ -18,11 +18,23 @@ try {
         $slicingFile = Join-Path $project 'FDM-Slicing.md'
         [System.IO.File]::WriteAllText($slicingFile, "# FDM preferences`nUser preference: preserve this existing entry.`n", $utf8)
         $slicingHash = (Get-FileHash -LiteralPath $slicingFile).Hash
+        $printerFile = Join-Path $project 'Printers.json'
+        $printerRecord = Get-Content -LiteralPath (Join-Path $templateDir '.agents\skills\printer-library\assets\printer.example.json') -Raw | ConvertFrom-Json
+        $printerLibrary = @{ schema_version = 1; printers = @($printerRecord) } | ConvertTo-Json -Depth 50
+        [System.IO.File]::WriteAllText($printerFile, $printerLibrary, $utf8)
+        $printerHash = (Get-FileHash -LiteralPath $printerFile).Hash
         $bootstrap = & (Join-Path $templateDir $firstLauncher) $project --setup-only 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0 -or $bootstrap -match '(?m)^Error:') { throw "Bootstrap failed:`n$bootstrap" }
         foreach ($name in @('SKILL.md', 'references\startup.md', 'references\workflow.md', 'scripts\start_orca.py')) {
             if (-not (Test-Path -LiteralPath (Join-Path $project ".agents\skills\orca-slice\$name"))) {
                 throw "Bootstrap omitted Orca skill file: $name"
+            }
+        }
+        foreach ($name in @('printer-library\SKILL.md', 'printer-library\references\format.md',
+                           'printer-library\assets\printer.example.json', 'printer-library\scripts\printer_library.py',
+                           'fdm-calibrate\SKILL.md', 'fdm-calibrate\references\practice.md', 'slice-compare\SKILL.md')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $project ".agents\skills\$name"))) {
+                throw "Bootstrap omitted slicing skill file: $name"
             }
         }
         $helper = Join-Path $project '.agents\skills\orca-slice\scripts\start_orca.py'
@@ -45,12 +57,13 @@ try {
                 $settings.enabledMcpjsonServers -notcontains 'orcaslicer' -or
                 $settings.autoMemoryEnabled -ne $false -or
                 (Get-FileHash -LiteralPath $projectFile).Hash -ne $contextHash -or
-                (Get-FileHash -LiteralPath $slicingFile).Hash -ne $slicingHash) {
+                (Get-FileHash -LiteralPath $slicingFile).Hash -ne $slicingHash -or
+                (Get-FileHash -LiteralPath $printerFile).Hash -ne $printerHash) {
                 throw "$launcher changed optional MCP configuration or project context."
             }
         }
     }
-    Write-Output 'Combined setup passed in two fresh copies, starting with each agent and switching to the other. Both MCP entries, Project.md, and FDM-Slicing.md preferences were preserved.'
+    Write-Output 'Combined setup passed in two fresh copies, starting with each agent and switching to the other. Both MCP entries, Project.md, FDM-Slicing.md, and existing printer definitions were preserved.'
 }
 finally {
     $absoluteRoot = [System.IO.Path]::GetFullPath($testRoot).TrimEnd('\')

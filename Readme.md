@@ -46,6 +46,22 @@ For a nonstandard installation add `--executable 'C:\Tools\OrcaMCP\orca-slicer.e
 
 Keep slicing rules and preferences in [`FDM-Slicing.md`](AgenticFusionTemplate/FDM-Slicing.md), read only for FDM work. Keep verified geometry, selected job profiles, export provenance, and slice results in `Project.md`. Setup copies missing files and preserves a project's existing slicing preferences.
 
+### Portable printers and slicing skills
+
+The shared `printer-library` skill maintains [`Printers.json`](AgenticFusionTemplate/Printers.json): printer identity, known hardware limits, evidence, and optional embedded Orca machine/filament/process presets. JSON keeps these definitions easy to copy and paste while preserving native profile types and inheritance. The template starts with an empty library; use the skill to record actual printers from user-stated or verified information.
+
+Copy the whole catalog to a new project, paste selected records into its `printers` array, or use the helper to merge them without silently replacing existing definitions:
+
+```powershell
+py -3 .agents/skills/printer-library/scripts/printer_library.py validate
+py -3 .agents/skills/printer-library/scripts/printer_library.py export --id my-printer --output shared-printers.json
+py -3 .agents/skills/printer-library/scripts/printer_library.py import --source shared-printers.json
+```
+
+`export-presets` also writes embedded presets as individual native JSON files. This catalog is agent context, not a slicer-native installer; review/import native presets through the slicer and verify declared system parents, firmware, nozzle and bed geometry. See the [format and migration reference](AgenticFusionTemplate/.agents/skills/printer-library/references/format.md) for the record template and full commands.
+
+Use `fdm-calibrate` to plan and interpret measured printer/material calibration, and `slice-compare` to compare estimated time/material/quality tradeoffs while restoring the accepted baseline. Calibration evidence and job outcomes stay in `Project.md` or its indexed notes; reusable user preferences stay in `FDM-Slicing.md`. Both agents discover the same physical skill files.
+
 ### Check the connection
 
 Inside the chosen agent, check `/mcp` for the `fusion` server. From a terminal in the project folder, `claude mcp list` or `codex mcp list` can also inspect configured servers. A safe first prompt is: “List the active Fusion document and its components without changing the design.” See the [Claude MCP guide](https://code.claude.com/docs/en/mcp) and [Codex MCP guide](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
@@ -60,6 +76,7 @@ If the server is disconnected, check that Fusion is running, its MCP option is e
 | `Agentic-Fusion.md` | Short, always-read shared design priorities, routing, memory placement, and size rules. |
 | `DfAM.md` | Optional protocol for a requested broad DfAM assessment; technical methods stay in the shared printing skill. |
 | `FDM-Slicing.md` | Shared FDM slicing rules and user-stated preferences, loaded on demand. |
+| `Printers.json` | Copyable printer definitions, evidence, and embedded native presets; initially empty. |
 | `CLAUDE.md`, `AGENTS.md` | Small agent-specific startup and tool instructions. |
 | `.mcp.json`, `settings.json` | Claude Code project MCP and agent settings. |
 | `.codex/config.toml` | Codex project MCP connection. |
@@ -67,6 +84,8 @@ If the server is disconnected, check that Fusion is running, its MCP option is e
 | `.agents/skills/fusion-print/` | Shared printing skill with references loaded by task: design rules, orientation, scan, and improvement. |
 | `.agents/skills/fusion-repair/` | Shared repair skill with references loaded by failure type. |
 | `.agents/skills/orca-slice/` | Shared Orca/MCP startup helper and slicing workflow; uses an installed OrcaMCP build. |
+| `.agents/skills/printer-library/` | Printer definition, validation, selective export/import, and native preset export. |
+| `.agents/skills/fdm-calibrate/`, `.agents/skills/slice-compare/` | Measured calibration and controlled slicing comparison guidance. |
 | `.agents/.claude-plugin/plugin.json` | Lets the Claude launcher load those same skill files as a local plugin. Codex discovers them in `.agents/skills/`. |
 | `.agents/scripts/task-complete.ps1`, `.agents/hooks/hooks.json`, `.codex/hooks.json` | One completion tone with agent-specific Stop hook declarations. |
 | `Project.md` | Created on first run for this design's verified context and decisions. |
@@ -80,5 +99,7 @@ Run [Run-Benchmark.bat](Benchmarking/Run-Benchmark.bat) to benchmark a fresh, di
 ## Maintenance and OrcaSlicer evidence
 
 The [OrcaSlicer feasibility study](Explorations/OrcaSlicer/README.md) retains backend comparisons, a local inventory probe, and the live slicing decision gates. Its setup check now exercises the shipped helper; superseded static configuration examples were removed. `Benchmarking/Test-OrcaSlicer.py` checks protocol handling, application launch behavior with a simulated process, configuration preservation, and rollback with a local mock server. Live slicing remains unverified.
+
+`py -3 Benchmarking/Test-PrinterLibrary.py` checks catalog transfer, native preset preservation, inheritance, conflicts and failed writes without an installed slicer. It does not verify a real printer or GUI preset import.
 
 Only the inner template is distributed. Benchmark sandboxes, exploration scratch files, and Python caches are ignored; keep application installs and agent runtime data outside that folder. Repository Git history is small and retained for recovery; cleanup does not require deleting or rewriting it.

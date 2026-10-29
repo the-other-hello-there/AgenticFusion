@@ -6,6 +6,8 @@ Each session, read `Agentic-Fusion.md` and `Project.md`'s `Current state`; if ab
 
 Follow the shared decision path. The launcher loads `.agents/` as the `agentic-fusion` plugin; invoke `fusion-model`, `fusion-print`, `orca-slice`, or `fusion-repair` as needed and read only relevant references. For Orca startup/slicing read `FDM-Slicing.md` and discover the `orcaslicer` tools by their actual schemas. Do not import skills or slicing context at startup.
 
+For FDM work, route printer definition/migration to `printer-library` and `Printers.json`, measured tuning to `fdm-calibrate`, and slicing experiments to `slice-compare`. These use the same physical skill files as Codex.
+
 ## Claude Code tool and configuration rules
 
 - Load the Fusion tools via ToolSearch:

@@ -124,7 +124,7 @@ function Write-ProjectJson {
 
 function Initialize-ProjectFiles {
     $portable = @(
-        'Fusion-Claude.bat', 'Fusion-Codex.bat', 'Agentic-Fusion.md', 'DfAM.md', 'FDM-Slicing.md', 'CLAUDE.md', 'AGENTS.md', '.gitignore',
+        'Fusion-Claude.bat', 'Fusion-Codex.bat', 'Agentic-Fusion.md', 'DfAM.md', 'FDM-Slicing.md', 'Printers.json', 'CLAUDE.md', 'AGENTS.md', '.gitignore',
         '.mcp.json', 'settings.json', '.codex\config.toml',
         '.codex\hooks.json', '.agents\hooks\hooks.json', '.agents\scripts\task-complete.ps1',
         '.agents\.claude-plugin\plugin.json',
@@ -151,7 +151,14 @@ function Initialize-ProjectFiles {
         '.agents\skills\orca-slice\SKILL.md',
         '.agents\skills\orca-slice\references\startup.md',
         '.agents\skills\orca-slice\references\workflow.md',
-        '.agents\skills\orca-slice\scripts\start_orca.py'
+        '.agents\skills\orca-slice\scripts\start_orca.py',
+        '.agents\skills\printer-library\SKILL.md',
+        '.agents\skills\printer-library\references\format.md',
+        '.agents\skills\printer-library\assets\printer.example.json',
+        '.agents\skills\printer-library\scripts\printer_library.py',
+        '.agents\skills\fdm-calibrate\SKILL.md',
+        '.agents\skills\fdm-calibrate\references\practice.md',
+        '.agents\skills\slice-compare\SKILL.md'
     )
     foreach ($name in $portable) {
         $source = Join-Path $TemplateDir $name
