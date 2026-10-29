@@ -32,6 +32,20 @@ Setup preserves an older copy's launcher and instruction files. To fix Claude's 
 
 The launcher warns above the 40,000-character `Project.md` target. For Claude, it detects legacy full-file imports and stops before their combined text exceeds the observed 150,000-character instruction limit. It never rewrites existing context.
 
+### Optional OrcaSlicer startup
+
+The shared `orca-slice` skill starts an installed [OrcaMCP community build](https://github.com/okets/OrcaMCP/tree/mcp) and its embedded MCP server. Install that build outside your project and use Python 3.11+ for the helper. No Snapmaker dependency is required. Ordinary Fusion startup remains independent of Python and Orca.
+
+From a project copy, ask either agent to use `orca-slice`, or run:
+
+```powershell
+py -3 .agents/skills/orca-slice/scripts/start_orca.py --configure
+```
+
+For a nonstandard installation add `--executable 'C:\Tools\OrcaMCP\orca-slicer.exe'`, or set `ORCAMCP_APP_PATH` on this machine. The helper starts/reuses the intended endpoint, verifies MCP initialization and tool discovery, and merges its `orcaslicer` entry into both clients' project settings. Reconnect/restart client MCP after the first registration. It does not install software or call slicing/printer tools. See the [startup reference](AgenticFusionTemplate/.agents/skills/orca-slice/references/startup.md) for setup-only mode, alternate ports, and recovery.
+
+Keep slicing rules and preferences in [`FDM-Slicing.md`](AgenticFusionTemplate/FDM-Slicing.md), read only for FDM work. Keep verified geometry, selected job profiles, export provenance, and slice results in `Project.md`. Setup copies missing files and preserves a project's existing slicing preferences.
+
 ### Check the connection
 
 Inside the chosen agent, check `/mcp` for the `fusion` server. From a terminal in the project folder, `claude mcp list` or `codex mcp list` can also inspect configured servers. A safe first prompt is: “List the active Fusion document and its components without changing the design.” See the [Claude MCP guide](https://code.claude.com/docs/en/mcp) and [Codex MCP guide](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
@@ -45,12 +59,14 @@ If the server is disconnected, check that Fusion is running, its MCP option is e
 | `Fusion-Claude.bat`, `Fusion-Codex.bat` | Shared first-run setup and Fusion startup; launch the chosen agent. |
 | `Agentic-Fusion.md` | Short, always-read shared design priorities, routing, memory placement, and size rules. |
 | `DfAM.md` | Optional protocol for a requested broad DfAM assessment; technical methods stay in the shared printing skill. |
+| `FDM-Slicing.md` | Shared FDM slicing rules and user-stated preferences, loaded on demand. |
 | `CLAUDE.md`, `AGENTS.md` | Small agent-specific startup and tool instructions. |
 | `.mcp.json`, `settings.json` | Claude Code project MCP and agent settings. |
 | `.codex/config.toml` | Codex project MCP connection. |
 | `.agents/skills/fusion-model/` | Shared modeling skill with task-specific Fusion API, assembly, timeline, sketch, feature, and verification references. |
 | `.agents/skills/fusion-print/` | Shared printing skill with references loaded by task: design rules, orientation, scan, and improvement. |
 | `.agents/skills/fusion-repair/` | Shared repair skill with references loaded by failure type. |
+| `.agents/skills/orca-slice/` | Shared Orca/MCP startup helper and slicing workflow; uses an installed OrcaMCP build. |
 | `.agents/.claude-plugin/plugin.json` | Lets the Claude launcher load those same skill files as a local plugin. Codex discovers them in `.agents/skills/`. |
 | `.agents/scripts/task-complete.ps1`, `.agents/hooks/hooks.json`, `.codex/hooks.json` | One completion tone with agent-specific Stop hook declarations. |
 | `Project.md` | Created on first run for this design's verified context and decisions. |
@@ -61,6 +77,8 @@ Fusion designs remain in Fusion's documents. Do not put agent credentials or gen
 
 Run [Run-Benchmark.bat](Benchmarking/Run-Benchmark.bat) to benchmark a fresh, disposable copy of the inner template. The guide opens the chosen agent, walks through B1–B7, times each prompt, and asks before adding results to [Benchmarking.md](Benchmarking/Benchmarking.md). Close the agent window before finishing so the temporary local copy can be deleted. Use a disposable Fusion project too; deleting the local copy does not remove Fusion cloud documents.
 
-## OrcaSlicer exploration
+## Maintenance and OrcaSlicer evidence
 
-The [OrcaSlicer feasibility study](Explorations/OrcaSlicer/README.md) compares an optional MCP integration in the shared project folder with a separate slicing folder. It includes inactive configurations for both agents, a local environment probe, and a setup compatibility check. Live slicing remains unverified.
+The [OrcaSlicer feasibility study](Explorations/OrcaSlicer/README.md) retains backend comparisons, a local inventory probe, and the live slicing decision gates. Its setup check now exercises the shipped helper; superseded static configuration examples were removed. `Benchmarking/Test-OrcaSlicer.py` checks protocol handling, application launch behavior with a simulated process, configuration preservation, and rollback with a local mock server. Live slicing remains unverified.
+
+Only the inner template is distributed. Benchmark sandboxes, exploration scratch files, and Python caches are ignored; keep application installs and agent runtime data outside that folder. Repository Git history is small and retained for recovery; cleanup does not require deleting or rewriting it.

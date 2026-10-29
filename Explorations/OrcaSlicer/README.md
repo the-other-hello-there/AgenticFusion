@@ -4,11 +4,11 @@ Assessment date: 2026-10-28. Branch: `explore/orcaslicer-mcp`, based on the self
 
 ## Recommendation
 
-Explore OrcaSlicer as an **optional integration in the same project folder**, retaining one `Project.md` and one physical skill tree for Codex and Claude Code. Both launchers already preserve an additional MCP entry; the combined setup check in this folder verifies that behavior. Keep the default portable template focused on Fusion until live tests pass.
+OrcaSlicer is now an **optional integration in the same project folder**, retaining one `Project.md` and one physical skill tree for Codex and Claude Code. The shared [orca-slice skill](../../AgenticFusionTemplate/.agents/skills/orca-slice/SKILL.md) starts an installed OrcaMCP build and its embedded server. [FDM-Slicing.md](../../AgenticFusionTemplate/FDM-Slicing.md) holds slicing rules/preferences. Normal Fusion startup remains independent of the slicer.
 
 A separate MCP server process does not require a separate agent folder. Use a separate folder when slicing is an independent job, uses third-party models without a Fusion design, or needs an incompatible slicer build/profile set. For a Fusion-to-print workflow, two folders would introduce another context handoff and competing copies of design intent.
 
-This branch provides research, inactive configuration examples, an environment inventory, and a setup compatibility check. It does not install a slicer, register an active Orca server, or implement a new MCP server. End-to-end slicing remains unverified.
+This folder retains backend research, an environment inventory, and a setup compatibility check. The shipped helper can register Orca for both agents on request; it does not install a slicer or implement another MCP server. End-to-end slicing remains unverified. The user selected OrcaMCP with no Snapmaker dependency for this experiment.
 
 ## Available integration routes
 
@@ -30,7 +30,7 @@ Checks performed on the assessment workstation:
 | Check | Result | Limit |
 | --- | --- | --- |
 | Baseline benchmark runner `-SelfTest` | Passed B1-B7 parsing, both fresh-copy setup checks, quoted batch launching, and temporary result append checks. | This checks the runner; it does not execute the Fusion modeling prompts or rate an agent. |
-| `Test-CombinedSetup.ps1` | Passed in two fresh copies, starting with each launcher and switching to the other. Both server entries and existing `Project.md` contents survived all four setup calls. | It does not test agent trust, MCP discovery, or server operation. |
+| `Test-CombinedSetup.ps1` | Uses the shipped setup helper in two fresh copies, then switches both launchers. Checks both server entries, `Project.md`, and edited `FDM-Slicing.md` preferences. | It does not test agent trust or a real slicer. |
 | `Test-OrcaEnvironment.ps1` | Found Snapmaker Orca `2.3.1` and Bambu Studio in standard install locations. | Neither finding establishes stock OrcaSlicer or MCP support. Portable installs elsewhere require `-OrcaPath`. |
 | Default loopback ports `27182`, `13618`, `13619`, `13130` | Not reachable from the probe environment at assessment time. | Applications may be closed, ports changed, or networking restricted. TCP reachability alone would not verify MCP. |
 | Live Fusion-to-Orca export, slicing, and agent restart | Not run. | Requires a selected MCP-capable build, a verified printer/nozzle/material profile, and disposable documents. |
@@ -41,20 +41,21 @@ Run from the repository root in Windows PowerShell:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File Benchmarking/Benchmark.ps1 -SelfTest
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File Explorations/OrcaSlicer/Test-CombinedSetup.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File Explorations/OrcaSlicer/Test-OrcaEnvironment.ps1
+py -3 Benchmarking/Test-OrcaSlicer.py
 # Include an installation outside the standard locations:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File Explorations/OrcaSlicer/Test-OrcaEnvironment.ps1 -OrcaPath 'D:\Tools\OrcaSlicer\orca-slicer.exe'
 ```
 
 The inventory reads executable metadata and connects to four loopback TCP ports. It does not execute the binaries, inspect printer credentials, or send application commands. Its JSON output can be redirected into this folder's ignored `.local/` directory after creating that directory. The combined setup check uses disposable copies there and deletes only its own GUID-named run folder.
 
-## Proposed integration shape
+## Integration shape
 
-1. Keep the existing Fusion endpoint, launchers, shared modeling/printing/repair skills, completion hooks, and benchmark runner. Add an explicit Orca opt-in that configures both clients under the server name `orcaslicer`. Fusion-only startup should not wait for a slicer.
-2. Add one shared `orca-slice` skill only after a backend passes live checks. Its short entrypoint should route to backend-specific setup, profile verification, slicing, and failure references. Keep reusable slicing procedures there and verified project facts in `Project.md`.
+1. Keep the existing Fusion endpoint, launchers, shared modeling/printing/repair skills, completion hooks, and benchmark runner. The Orca helper explicitly configures both clients under `orcaslicer`; Fusion-only startup does not wait for a slicer.
+2. The shared `orca-slice` entrypoint routes to startup and workflow references. Keep reusable slicing procedures there, rules/preferences in `FDM-Slicing.md`, and verified project/job facts in `Project.md`. Validate the real backend with the live checks below before claiming print-workflow viability.
 3. Retain Fusion as the parametric source. Apply modeling changes through its existing parameters, sketches, and logical timeline position. Slicer transformations and settings belong to a recorded print setup; moving an exported mesh does not update the Fusion design.
 4. Keep server installs, package caches, application profiles, tokens, and generated agent runtime data outside the distributable folder. Record versions and selected profile identifiers without copying a user's entire application configuration into the template.
 
-The [Claude example](examples/claude.mcp.json.example) and [Codex example](examples/codex.config.toml.example) show Fusion alongside direct HTTP to a running **OrcaMCP fork** on `13618`. They are inactive examples. Merge their Orca entry into a disposable project's existing configuration; preserve any other entries. Review/enable that server through each client's normal project trust flow. If Claude's project uses `enabledMcpjsonServers`, include `orcaslicer` there when enabling the experiment. Do not point these examples at the MaxEllis REST port.
+The [startup helper](../../AgenticFusionTemplate/.agents/skills/orca-slice/scripts/start_orca.py) replaces the old static examples with one configuration path for both agents. `--setup-only` configures without starting an app or asserting connectivity; `--configure` verifies the running MCP before configuring. It preserves unrelated entries and explicit disables, and restores original configuration bytes on a write failure. Client project trust still applies. Do not point it at the MaxEllis REST port.
 
 For a CLI adapter, expose bounded operations such as inspect version/profile, slice an approved input with explicit profiles, and read a completed result. Pass arguments directly to the process, retain exit code/logs, enforce a timeout, and inspect the output before reporting success. Resolve inherited printer, process, and filament settings rather than assuming a preset filename fully defines them. Start with one adapter shared by both clients.
 
@@ -88,4 +89,4 @@ Use the same disposable B2/B5 bracket and the same printer/nozzle/material acros
 
 Promote the optional shared-folder approach when both agents pass O1-O7 and retain B1-B7 behavior at an acceptable measured time/usage cost. Choose a separate slicing folder if live tests reveal incompatible application/profile requirements, conflicting project lifecycles, or an independently managed print queue. In that case, pass the versioned export manifest between folders and keep CAD intent authoritative in the Fusion project.
 
-The next experiment is to confirm the target printer/nozzle/material and whether Snapmaker-specific profiles must be retained, select a compatible Windows build, verify its MCP tools in both clients, and run O1-O4. Until then, the configuration architecture is supported by local checks; backend and print-workflow viability remain open.
+The next live experiment is to install the selected OrcaMCP Windows build, confirm the target printer/nozzle/material, verify its MCP tools in both clients, and run O1-O4. Snapmaker-specific compatibility is not required. Until then, the configuration architecture is supported by local checks; backend and print-workflow viability remain open.

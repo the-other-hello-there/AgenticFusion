@@ -11,12 +11,23 @@ try {
     New-Item -ItemType Directory -Path $testRoot -Force | Out-Null
     foreach ($firstLauncher in @('Fusion-Claude.bat', 'Fusion-Codex.bat')) {
         $project = Join-Path $testRoot $firstLauncher.Replace('.bat', ' fresh copy')
-        Copy-Item -LiteralPath $templateDir -Destination $project -Recurse
-        Copy-Item -LiteralPath (Join-Path $explorationDir 'examples\claude.mcp.json.example') -Destination (Join-Path $project '.mcp.json') -Force
-        Copy-Item -LiteralPath (Join-Path $explorationDir 'examples\codex.config.toml.example') -Destination (Join-Path $project '.codex\config.toml') -Force
+        New-Item -ItemType Directory -Path $project | Out-Null
         $projectFile = Join-Path $project 'Project.md'
         [System.IO.File]::WriteAllText($projectFile, "# Project: preserve verified context`n", $utf8)
         $contextHash = (Get-FileHash -LiteralPath $projectFile).Hash
+        $slicingFile = Join-Path $project 'FDM-Slicing.md'
+        [System.IO.File]::WriteAllText($slicingFile, "# FDM preferences`nUser preference: preserve this existing entry.`n", $utf8)
+        $slicingHash = (Get-FileHash -LiteralPath $slicingFile).Hash
+        $bootstrap = & (Join-Path $templateDir $firstLauncher) $project --setup-only 2>&1 | Out-String
+        if ($LASTEXITCODE -ne 0 -or $bootstrap -match '(?m)^Error:') { throw "Bootstrap failed:`n$bootstrap" }
+        foreach ($name in @('SKILL.md', 'references\startup.md', 'references\workflow.md', 'scripts\start_orca.py')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $project ".agents\skills\orca-slice\$name"))) {
+                throw "Bootstrap omitted Orca skill file: $name"
+            }
+        }
+        $helper = Join-Path $project '.agents\skills\orca-slice\scripts\start_orca.py'
+        $setup = & py -3 $helper --setup-only 2>&1 | Out-String
+        if ($LASTEXITCODE -ne 0) { throw "Orca setup failed:`n$setup" }
         $otherLauncher = if ($firstLauncher -eq 'Fusion-Claude.bat') { 'Fusion-Codex.bat' } else { 'Fusion-Claude.bat' }
         foreach ($launcher in @($firstLauncher, $otherLauncher)) {
             $output = & (Join-Path $project $launcher) --setup-only 2>&1 | Out-String
@@ -31,13 +42,15 @@ try {
                 $codex -notmatch 'http://127\.0\.0\.1:27182/mcp' -or
                 $codex -notmatch 'http://127\.0\.0\.1:13618/mcp' -or
                 $settings.enabledMcpjsonServers -notcontains 'fusion' -or
+                $settings.enabledMcpjsonServers -notcontains 'orcaslicer' -or
                 $settings.autoMemoryEnabled -ne $false -or
-                (Get-FileHash -LiteralPath $projectFile).Hash -ne $contextHash) {
+                (Get-FileHash -LiteralPath $projectFile).Hash -ne $contextHash -or
+                (Get-FileHash -LiteralPath $slicingFile).Hash -ne $slicingHash) {
                 throw "$launcher changed optional MCP configuration or project context."
             }
         }
     }
-    Write-Output 'Combined setup passed in two fresh copies, starting with each agent and switching to the other. Both MCP entries and Project.md were preserved.'
+    Write-Output 'Combined setup passed in two fresh copies, starting with each agent and switching to the other. Both MCP entries, Project.md, and FDM-Slicing.md preferences were preserved.'
 }
 finally {
     $absoluteRoot = [System.IO.Path]::GetFullPath($testRoot).TrimEnd('\')

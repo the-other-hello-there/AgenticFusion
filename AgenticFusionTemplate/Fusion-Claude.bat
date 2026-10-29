@@ -124,7 +124,7 @@ function Write-ProjectJson {
 
 function Initialize-ProjectFiles {
     $portable = @(
-        'Fusion-Claude.bat', 'Fusion-Codex.bat', 'Agentic-Fusion.md', 'DfAM.md', 'CLAUDE.md', 'AGENTS.md',
+        'Fusion-Claude.bat', 'Fusion-Codex.bat', 'Agentic-Fusion.md', 'DfAM.md', 'FDM-Slicing.md', 'CLAUDE.md', 'AGENTS.md', '.gitignore',
         '.mcp.json', 'settings.json', '.codex\config.toml',
         '.codex\hooks.json', '.agents\hooks\hooks.json', '.agents\scripts\task-complete.ps1',
         '.agents\.claude-plugin\plugin.json',
@@ -147,7 +147,11 @@ function Initialize-ProjectFiles {
         '.agents\skills\fusion-repair\SKILL.md',
         '.agents\skills\fusion-repair\references\mcp-and-save.md',
         '.agents\skills\fusion-repair\references\document-state.md',
-        '.agents\skills\fusion-repair\references\geometry.md'
+        '.agents\skills\fusion-repair\references\geometry.md',
+        '.agents\skills\orca-slice\SKILL.md',
+        '.agents\skills\orca-slice\references\startup.md',
+        '.agents\skills\orca-slice\references\workflow.md',
+        '.agents\skills\orca-slice\scripts\start_orca.py'
     )
     foreach ($name in $portable) {
         $source = Join-Path $TemplateDir $name

@@ -75,7 +75,8 @@ function Test-LauncherSetup {
     $launcher = Join-Path $Project $LauncherName
     $output = (& $launcher --setup-only 2>&1 | Out-String)
     if ($LASTEXITCODE -ne 0 -or $output -match '(?m)^Error:') { throw "$LauncherName setup failed:`n$output" }
-    foreach ($file in @('Project.md', '.mcp.json', '.codex\config.toml', 'settings.json')) {
+    foreach ($file in @('Project.md', 'FDM-Slicing.md', '.mcp.json', '.codex\config.toml', 'settings.json',
+                        '.agents\skills\orca-slice\SKILL.md', '.agents\skills\orca-slice\scripts\start_orca.py')) {
         if (-not (Test-Path -LiteralPath (Join-Path $Project $file) -PathType Leaf)) {
             throw "$LauncherName did not prepare $file.`n$output"
         }

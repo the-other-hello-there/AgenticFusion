@@ -1,0 +1,6 @@
+# Agent and Python runtime data belongs outside the portable template.
+__pycache__/
+*.py[cod]
+.claude/
+.codex/log/
+.codex/sessions/

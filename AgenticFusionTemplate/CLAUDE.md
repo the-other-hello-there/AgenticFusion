@@ -4,7 +4,7 @@ Run `Fusion-Claude.bat` to initialize the project, start Fusion, wait for its lo
 
 Each session, read `Agentic-Fusion.md` and `Project.md`'s `Current state`; if absent, scan headings and read relevant sections only. Do not import either file through `@` directives.
 
-Follow the shared decision path. The launcher loads `.agents/` as the `agentic-fusion` plugin; invoke `fusion-model`, `fusion-print`, or `fusion-repair` as needed and read only relevant references. Do not import skills at startup.
+Follow the shared decision path. The launcher loads `.agents/` as the `agentic-fusion` plugin; invoke `fusion-model`, `fusion-print`, `orca-slice`, or `fusion-repair` as needed and read only relevant references. For Orca startup/slicing read `FDM-Slicing.md` and discover the `orcaslicer` tools by their actual schemas. Do not import skills or slicing context at startup.
 
 ## Claude Code tool and configuration rules
 

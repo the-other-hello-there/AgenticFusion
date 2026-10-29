@@ -1,0 +1,4 @@
+# Generated maintenance data; keep authored context and test results tracked.
+.local/
+__pycache__/
+*.py[cod]
