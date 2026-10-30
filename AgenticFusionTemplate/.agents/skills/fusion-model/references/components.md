@@ -1,7 +1,6 @@
 ## Documents, components, parameters
 - New documents may default to Part Design, which allows only one component. For multi-component work, set `design.designIntent = AssemblyDesignIntentType` right after `documents.add`.
 - User parameters are document-wide, so they can drive internal components. Externally referenced components keep their own parameters.
-- Parameter expressions support `sin`/`cos`/`tan`/`sqrt`/`^`. Unitless parameters use unit `''`. Derive dependent geometry, such as tangent points, as parameter expressions to keep it parametric.
 - Features in a sub-component:
   - With native inputs (the component's own construction planes, sketches and bodies), build through `comp.sketches` / `comp.features` directly.
   - With proxy inputs, call `occ.activate()` first and pass `createForAssemblyContext(occ)` proxies, then `design.activateRootComponent()`. Otherwise you get "Failed to get owner occurrence transform".
@@ -27,4 +26,12 @@
   - **Clearance to another design** (e.g. the machine a part reaches into): open it, then in one script get its design with `app.documents` → `products.itemByProductType('DesignProductType')`. `tm.copy` its body proxies, transform them into the active design's frame (e.g. through a demo part placed in both), and intersect or measure. Sanity-check the mapping on a part present in both (it should land exactly), then `close(False)` the reference and `activate()` the working document.
   - TemporaryBRep booleans between an imported STEP body and a rebuilt look-alike often fail (`ASM_INCONS_REL`, `ASM_BAD_CONTAINMENT`); compare by `body.pointContainment` sampling or plane sections (`TemporaryBRepManager.planeIntersection`) instead. In a plane-section wire, sample each edge strictly inside its parameter range (`getPointAtParameter` at the exact end can raise `invalid argument parameter`).
 - Sketch and feature names share one namespace: a feature named like an existing sketch gets a ` (1)` suffix. Name sketches `<feature> sketch`.
+
+## Parameter design
+
+Drive almost everything from a small set of intent-level parameters (user rule). Give an independent user parameter to a real design choice: cable diameter, wall thickness, clearance, groove angle or interface position. Derive dependent dimensions from those choices and shared datums; do not create a separate user parameter for every edge, copy or calculated offset.
+
+Before adding a parameter, search for one with the same meaning; reuse or derive from it. Promote a hard-coded sketch dimension when a new feature needs to depend on it. Tie names and expressions to function, and inspect all dependents before changing a shared driver. Use direct edits, Replace Face, Split + Remove, planes offset from faces and fills of incidental geometry only very cautiously.
+
+Expressions support `sin`/`cos`/`tan`/`sqrt`/`^`; unitless parameters use unit `''`. Derive tangent points and other dependent geometry as expressions too.
 

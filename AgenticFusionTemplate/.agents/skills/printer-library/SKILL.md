@@ -5,9 +5,9 @@ description: Define, inspect, update, export, or migrate FDM printer definitions
 
 # Portable printer definitions
 
-Use the project's `Printers.json` as the shared machine library for both agents. Read only the requested printer records; it starts empty. Never infer ownership, bed size, nozzle, firmware, or limits from an installed slicer or a similarly named preset.
+Read the requested records in `Printers.json`, shared by both agents and initially empty. Never infer ownership or hardware from an installed slicer or similarly named preset.
 
-For field definitions and migration commands, read [format and migration](references/format.md). Capture user-stated hardware, a selected printer's documented specifications, or the relevant read-only MCP fields; distinguish those sources from measurements. Preserve unknowns as `null` or empty lists. Use the [record template](assets/printer.example.json) to prepare a record, then validate/add it with the standard-library helper:
+Read [format and migration](references/format.md) for fields and transfer commands. Distinguish user statements, documented specifications and read-only MCP observations from measurements; preserve unknowns as `null` or empty lists. Prepare a record from the [template](assets/printer.example.json), then validate/add it:
 
 ```powershell
 py -3 .agents/skills/printer-library/scripts/printer_library.py validate
@@ -18,4 +18,4 @@ Preserve native Orca preset names, types, value types, custom G-code, and inheri
 
 Keep connection credentials and device identifiers out of portable records. The helper rejects common credential/connection fields; inspect free-text/G-code before sharing. It never installs presets, contacts a printer, or executes stored G-code. Existing record conflicts require deliberate replacement; preserve the prior record through Git or an export when updating verified hardware.
 
-Keep job selection and slice results in `Project.md`, user preferences in `FDM-Slicing.md`, and calibration evidence in the project's indexed results. Use `fdm-calibrate` for calibration and `orca-slice` to verify the actual active printer/profile.
+Keep job/calibration results in `Project.md` and indexed notes, and preferences in `FDM-Slicing.md`. Use `fdm-calibrate` for calibration and `orca-slice` to verify the live printer/profile.

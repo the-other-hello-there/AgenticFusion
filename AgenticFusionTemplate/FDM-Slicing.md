@@ -1,6 +1,6 @@
 # FDM slicing rules and preferences
 
-Read for slicer tasks in either agent. This file holds reusable slicing rules and user-stated preferences for this project copy. Keep printer hardware and portable presets in `Printers.json`; verified part geometry, selected job profiles, export provenance, slice/calibration results, artifact paths, and open job items in `Project.md` or its indexed notes. Use `printer-library` to define/migrate machines, `orca-slice` for startup and ordinary slicing, `fdm-calibrate` for measured tuning, and `slice-compare` for estimated tradeoffs. CAD printability methods remain in `fusion-print`.
+Read for FDM tasks in either agent. Store reusable slicing rules and user-stated preferences here; printer hardware/presets in `Printers.json`; job facts and evidence in `Project.md` or its indexed notes. `Agentic-Fusion.md` owns skill routing and context placement; CAD printability methods remain in `fusion-print`.
 
 ## Current preferences
 
@@ -24,4 +24,4 @@ Read for slicer tasks in either agent. This file holds reusable slicing rules an
 
 ## Preference updates
 
-When the user gives a durable preference, update its existing entry with scope and exceptions. Keep this file concise (target at most 20,000 decoded characters), read only for FDM work, and preserve a copied project's edits during template setup. Link detailed calibration evidence from `Project.md` when needed.
+Record new user-stated durable preferences or update an existing entry with its scope and exceptions. Follow the shared context-size rules; setup preserves copied projects' edits. Link detailed calibration evidence from `Project.md`.

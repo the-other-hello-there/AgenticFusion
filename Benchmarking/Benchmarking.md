@@ -73,3 +73,19 @@ Copy this block for each template revision. Use the Git commit ID if the templat
 | B5 | [fill in] | [fill in] | [fill in] | [fill in] |
 | B6 | [fill in] | [fill in] | [fill in] | [fill in] |
 | B7 | [fill in] | [fill in] | [fill in] | [fill in] |
+
+## Template consolidation assessment, 2026-10-30
+
+The portable module's 50 files were audited for repeated instructions, overlapping references, launcher code and configuration. Shared routing/context placement now lives in `Agentic-Fusion.md`; agent entry files retain their own discovery, tool and account rules. Detailed parameter design moved to its linked modeling reference. Repeated slicing routing and startup detail were shortened without changing preferences, hardware records or helper behavior.
+
+| Area | Decision |
+| --- | --- |
+| Launchers | One agent-discovery function and a shorter copy manifest; retain the explicit allowlist and both user-facing batch entrypoints. |
+| Native config and hooks | Keep both clients' formats and trust behavior, with one shared completion script. |
+| Skills and references | Keep seven discoverable skills, the copyable printer record and task-specific references. Their distinct scopes support selective reading; technical rules, numerical examples and recovery evidence remain. |
+| Orca/printer helpers | Keep standalone standard-library tools. Their configuration rollback and catalog-validation/write contracts differ; a shared library would add coupling. |
+| Independent review | Retain the single runtime, policy and setup reference, including budget holds and existing activation/enforcement limits. |
+
+The entry file plus shared guide shrank from 10,614 to 8,700 decoded characters for Codex (18.0%) and from 11,803 to 9,951 for Claude (15.7%), excluding project-specific context and runtime-provided skill metadata. No distributed files were added or removed; Git history was retained.
+
+Validation: all 58 regression tests passed, along with both fresh-copy launcher checks, guarded dispatch and installed CLI discovery. The combined setup check now verifies all shipped files, excludes injected runtime leftovers, and preserves customized instructions, a skill reference, launchers, project context, slicing preferences, printer definitions and review policy. Local links/anchors, context budgets, JSON/TOML and Python/PowerShell syntax passed; all skill discovery metadata is unchanged. Live Fusion modeling, slicing and paid-model behavior were not exercised by this audit.

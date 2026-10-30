@@ -5,7 +5,7 @@ description: Review or improve a Fusion design for FFF 3D printing. Use for prin
 
 # Fusion printing
 
-Use `Project.md`'s `Current state` and print decisions with `Agentic-Fusion.md`'s preventive rules. Record project orientation and open print decisions in `Project.md`. Priority: design intent and function, general design rules, printing preferences; preserve assembly symmetry.
+Read `Agentic-Fusion.md` and `Project.md`'s current print decisions. Follow the shared authority rules, including assembly symmetry. Record orientation and open print decisions in `Project.md`.
 
 For slicer startup, profile selection or actual slices use `orca-slice` and `FDM-Slicing.md`. The analysis assumptions below are not validated slicing settings.
 

@@ -7,7 +7,7 @@
 - **Small holes are acceptable as is (user rule)** when meant for self-tapping, or when short enough to drill or carve out easily. Even if poorly resolved, they still mark the center for drilling.
 
 **Fits and threads**
-- **Intentional mating or sliding fits between printed parts:** about 0.2 mm loose, 0.1 mm tight. Keep it a parameter. For parts that must remain separate throughout motion, use the about 1 mm running clearance in `Agentic-Fusion.md`.
+- **Intentional mating or sliding fits between printed parts:** about 0.2 mm loose, 0.1 mm tight. Keep it a parameter. For parts that must remain separate throughout motion, use the running-clearance rule in [motion checks](../../fusion-model/references/design-and-assembly.md#motion-checks).
   - **Angled sliding fits (dovetails):** the clearance must be a true parallel offset of the mating profile. With flank angle a, depth d and clearance c: neck `+ c/cos a`, flare `+ c/cos a + (d + c)·tan a`, floor `− c`.
     - Adding c sideways and cutting c deeper makes the flank steeper and leaves about c/2 at the rail tip. Measure the real gap; a nominal clearance can leave the slide too stiff.
     - **Size clearances by each face's job (user):** a slide-on dovetail only retains the part against pulling off; a clip stops sliding. Give the retaining flanks and the shoulder 0.2 mm square to the faces (about 0.4 mm play per slot; a zero-gap, flat-on-flat shoulder along a long dovetail jammed). Make every non-functional face generously clear, e.g. the rail tip about 0.6 mm from the groove roof.

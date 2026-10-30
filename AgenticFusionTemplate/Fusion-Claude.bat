@@ -90,27 +90,16 @@ function Add-ToPath {
     if (-not $inProc) { $env:PATH = "$env:PATH;$Dir" }
 }
 
-function Confirm-Claude {
-    if (Get-Command claude -ErrorAction SilentlyContinue) { return $true }
-    Write-Host "'claude' not found on PATH - looking for it..." -ForegroundColor Yellow
-    $candidates = @("$env:USERPROFILE\.local\bin", "$env:APPDATA\npm")
+function Confirm-Agent {
+    param([ValidateSet('claude', 'codex')][string]$Name)
+    if (Get-Command $Name -ErrorAction SilentlyContinue) { return $true }
+    Write-Host "'$Name' not found on PATH - looking for it..." -ForegroundColor Yellow
+    $nativeDir = if ($Name -eq 'codex') { "$env:LOCALAPPDATA\Programs\OpenAI\Codex\bin" } else { "$env:USERPROFILE\.local\bin" }
+    $candidates = @($nativeDir, "$env:APPDATA\npm")
     foreach ($dir in $candidates) {
-        if ((Test-Path -LiteralPath "$dir\claude.exe") -or (Test-Path -LiteralPath "$dir\claude.cmd")) {
+        if ((Test-Path -LiteralPath "$dir\$Name.exe") -or (Test-Path -LiteralPath "$dir\$Name.cmd")) {
             Add-ToPath -Dir $dir
-            if (Get-Command claude -ErrorAction SilentlyContinue) { return $true }
-        }
-    }
-    return $false
-}
-
-function Confirm-Codex {
-    if (Get-Command codex -ErrorAction SilentlyContinue) { return $true }
-    Write-Host "'codex' not found on PATH - looking for it..." -ForegroundColor Yellow
-    $candidates = @("$env:LOCALAPPDATA\Programs\OpenAI\Codex\bin", "$env:APPDATA\npm")
-    foreach ($dir in $candidates) {
-        if ((Test-Path -LiteralPath "$dir\codex.exe") -or (Test-Path -LiteralPath "$dir\codex.cmd")) {
-            Add-ToPath -Dir $dir
-            if (Get-Command codex -ErrorAction SilentlyContinue) { return $true }
+            if (Get-Command $Name -ErrorAction SilentlyContinue) { return $true }
         }
     }
     return $false
@@ -127,40 +116,23 @@ function Initialize-ProjectFiles {
         'Fusion-Claude.bat', 'Fusion-Codex.bat', 'Agentic-Fusion.md', 'DfAM.md', 'FDM-Slicing.md', 'Printers.json', 'Independent-Review.md', 'Review-Policy.json', 'CLAUDE.md', 'AGENTS.md', '.gitignore',
         '.mcp.json', 'settings.json', '.codex\config.toml',
         '.codex\hooks.json', '.agents\hooks\hooks.json', '.agents\scripts\task-complete.ps1',
-        '.agents\.claude-plugin\plugin.json',
-        '.agents\scripts\review_guard.py',
-        '.agents\skills\fusion-model\SKILL.md',
-        '.agents\skills\fusion-model\references\design-and-assembly.md',
-        '.agents\skills\fusion-model\references\mcp.md',
-        '.agents\skills\fusion-model\references\timeline.md',
-        '.agents\skills\fusion-model\references\helpers.md',
-        '.agents\skills\fusion-model\references\components.md',
-        '.agents\skills\fusion-model\references\sketches-and-features.md',
-        '.agents\skills\fusion-model\references\fillets.md',
-        '.agents\skills\fusion-print\SKILL.md',
-        '.agents\skills\fusion-print\references\sizes-and-fits.md',
-        '.agents\skills\fusion-print\references\overhangs-and-bed.md',
-        '.agents\skills\fusion-print\references\voids-and-cables.md',
-        '.agents\skills\fusion-print\references\mechanisms-and-fasteners.md',
-        '.agents\skills\fusion-print\references\orientation.md',
-        '.agents\skills\fusion-print\references\scan.md',
-        '.agents\skills\fusion-print\references\improvement.md',
-        '.agents\skills\fusion-repair\SKILL.md',
-        '.agents\skills\fusion-repair\references\mcp-and-save.md',
-        '.agents\skills\fusion-repair\references\document-state.md',
-        '.agents\skills\fusion-repair\references\geometry.md',
-        '.agents\skills\orca-slice\SKILL.md',
-        '.agents\skills\orca-slice\references\startup.md',
-        '.agents\skills\orca-slice\references\workflow.md',
-        '.agents\skills\orca-slice\scripts\start_orca.py',
-        '.agents\skills\printer-library\SKILL.md',
-        '.agents\skills\printer-library\references\format.md',
-        '.agents\skills\printer-library\assets\printer.example.json',
-        '.agents\skills\printer-library\scripts\printer_library.py',
-        '.agents\skills\fdm-calibrate\SKILL.md',
-        '.agents\skills\fdm-calibrate\references\practice.md',
-        '.agents\skills\slice-compare\SKILL.md'
+        '.agents\.claude-plugin\plugin.json', '.agents\scripts\review_guard.py'
     )
+    # Explicit allowlist: unknown files, account data and runtime folders never propagate.
+    $skillFiles = [ordered]@{
+        'fusion-model' = @('references\design-and-assembly.md', 'references\mcp.md', 'references\timeline.md',
+                          'references\helpers.md', 'references\components.md', 'references\sketches-and-features.md', 'references\fillets.md')
+        'fusion-print' = @('references\sizes-and-fits.md', 'references\overhangs-and-bed.md', 'references\voids-and-cables.md',
+                          'references\mechanisms-and-fasteners.md', 'references\orientation.md', 'references\scan.md', 'references\improvement.md')
+        'fusion-repair' = @('references\mcp-and-save.md', 'references\document-state.md', 'references\geometry.md')
+        'orca-slice' = @('references\startup.md', 'references\workflow.md', 'scripts\start_orca.py')
+        'printer-library' = @('references\format.md', 'assets\printer.example.json', 'scripts\printer_library.py')
+        'fdm-calibrate' = @('references\practice.md')
+        'slice-compare' = @()
+    }
+    foreach ($skill in $skillFiles.GetEnumerator()) {
+        foreach ($file in @('SKILL.md') + $skill.Value) { $portable += ".agents\skills\$($skill.Key)\$file" }
+    }
     foreach ($name in $portable) {
         $source = Join-Path $TemplateDir $name
         $target = Join-Path $ProjectDir $name
@@ -310,21 +282,14 @@ function Start-AgenticFusion {
     }
     if (-not $contextFits) { return }
 
-    if ($env:AGENT -eq 'codex') {
-        if (-not (Confirm-Codex)) {
-            Write-Host "Codex ('codex') was not found on PATH or in the usual install folders. Install it, then run this again." -ForegroundColor Red
-            if ($env:AGENTIC_REVIEW_TASK) { throw 'Guarded task could not start its primary runtime.' }
-            return
-        }
-    }
-    else {
+    if ($env:AGENT -eq 'claude') {
         # Claude account and runtime data stay in its normal user config, outside the portable folder.
         Remove-Item Env:CLAUDE_CONFIG_DIR -ErrorAction SilentlyContinue
-        if (-not (Confirm-Claude)) {
-            Write-Host "Claude Code ('claude') was not found on PATH or in the usual install folders. Install it, then run this again." -ForegroundColor Red
-            if ($env:AGENTIC_REVIEW_TASK) { throw 'Guarded task could not start its primary runtime.' }
-            return
-        }
+    }
+    if (-not (Confirm-Agent -Name $env:AGENT)) {
+        Write-Host "'$($env:AGENT)' was not found on PATH or in the usual install folders. Install it, then run this again." -ForegroundColor Red
+        if ($env:AGENTIC_REVIEW_TASK) { throw 'Guarded task could not start its primary runtime.' }
+        return
     }
     Set-Location -LiteralPath $ProjectDir
 

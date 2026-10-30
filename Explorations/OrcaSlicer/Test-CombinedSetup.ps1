@@ -7,48 +7,67 @@ $localDir = Join-Path $explorationDir '.local'
 $testRoot = Join-Path $localDir ([guid]::NewGuid().ToString('N'))
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 
+function Assert-ProjectFiles {
+    param([string]$Project, [System.Collections.IDictionary]$Expected)
+    foreach ($entry in $Expected.GetEnumerator()) {
+        $file = Join-Path $Project $entry.Key
+        if (-not (Test-Path -LiteralPath $file -PathType Leaf) -or (Get-FileHash -LiteralPath $file).Hash -ne $entry.Value) {
+            throw "Setup omitted or replaced portable/context file: $($entry.Key)"
+        }
+    }
+}
+
 try {
     New-Item -ItemType Directory -Path $testRoot -Force | Out-Null
+    $sourceTemplate = Join-Path $testRoot 'template source'
+    Copy-Item -LiteralPath $templateDir -Destination $sourceTemplate -Recurse
+    $excludedFiles = @('sessions\stale.json', '.agents\skills\orca-slice\scripts\__pycache__\stale.pyc')
+    foreach ($name in $excludedFiles) {
+        $file = Join-Path $sourceTemplate $name
+        New-Item -ItemType Directory -Path (Split-Path -Parent $file) -Force | Out-Null
+        [System.IO.File]::WriteAllText($file, 'Synthetic runtime data: do not distribute.', $utf8)
+    }
     foreach ($firstLauncher in @('Fusion-Claude.bat', 'Fusion-Codex.bat')) {
         $project = Join-Path $testRoot $firstLauncher.Replace('.bat', ' fresh copy')
         New-Item -ItemType Directory -Path $project | Out-Null
         $projectFile = Join-Path $project 'Project.md'
         [System.IO.File]::WriteAllText($projectFile, "# Project: preserve verified context`n", $utf8)
-        $contextHash = (Get-FileHash -LiteralPath $projectFile).Hash
         $slicingFile = Join-Path $project 'FDM-Slicing.md'
         [System.IO.File]::WriteAllText($slicingFile, "# FDM preferences`nUser preference: preserve this existing entry.`n", $utf8)
-        $slicingHash = (Get-FileHash -LiteralPath $slicingFile).Hash
         $printerFile = Join-Path $project 'Printers.json'
         $printerRecord = Get-Content -LiteralPath (Join-Path $templateDir '.agents\skills\printer-library\assets\printer.example.json') -Raw | ConvertFrom-Json
         $printerLibrary = @{ schema_version = 1; printers = @($printerRecord) } | ConvertTo-Json -Depth 50
         [System.IO.File]::WriteAllText($printerFile, $printerLibrary, $utf8)
-        $printerHash = (Get-FileHash -LiteralPath $printerFile).Hash
         $reviewPolicyFile = Join-Path $project 'Review-Policy.json'
         $reviewPolicy = Get-Content -LiteralPath (Join-Path $templateDir 'Review-Policy.json') -Raw | ConvertFrom-Json
         $reviewPolicy.max_review_ratio = '0.12'
         [System.IO.File]::WriteAllText($reviewPolicyFile, ($reviewPolicy | ConvertTo-Json -Depth 20), $utf8)
-        $reviewPolicyHash = (Get-FileHash -LiteralPath $reviewPolicyFile).Hash
-        $bootstrap = & (Join-Path $templateDir $firstLauncher) $project --setup-only 2>&1 | Out-String
+        foreach ($name in @('AGENTS.md', 'CLAUDE.md', '.agents\skills\fusion-model\references\mcp.md')) {
+            $file = Join-Path $project $name
+            New-Item -ItemType Directory -Path (Split-Path -Parent $file) -Force | Out-Null
+            [System.IO.File]::WriteAllText($file, "# Preserve this project's customized $name`n", $utf8)
+        }
+        $otherLauncher = if ($firstLauncher -eq 'Fusion-Claude.bat') { 'Fusion-Codex.bat' } else { 'Fusion-Claude.bat' }
+        $localLauncher = [System.IO.File]::ReadAllText((Join-Path $templateDir $otherLauncher)).Replace('@echo off', "@echo off`r`nrem Preserve this project's launcher edits.")
+        [System.IO.File]::WriteAllText((Join-Path $project $otherLauncher), $localLauncher, $utf8)
+        $expected = @{ 'Project.md' = (Get-FileHash -LiteralPath $projectFile).Hash }
+        foreach ($sourceFile in Get-ChildItem -LiteralPath $templateDir -File -Recurse -Force) {
+            $name = $sourceFile.FullName.Substring($templateDir.Length + 1)
+            $target = Join-Path $project $name
+            $expected[$name] = if (Test-Path -LiteralPath $target) { (Get-FileHash -LiteralPath $target).Hash } else { (Get-FileHash -LiteralPath $sourceFile.FullName).Hash }
+        }
+        $bootstrap = & (Join-Path $sourceTemplate $firstLauncher) $project --setup-only 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0 -or $bootstrap -match '(?m)^Error:') { throw "Bootstrap failed:`n$bootstrap" }
-        foreach ($name in @('SKILL.md', 'references\startup.md', 'references\workflow.md', 'scripts\start_orca.py')) {
-            if (-not (Test-Path -LiteralPath (Join-Path $project ".agents\skills\orca-slice\$name"))) {
-                throw "Bootstrap omitted Orca skill file: $name"
-            }
-        }
-        foreach ($name in @('printer-library\SKILL.md', 'printer-library\references\format.md',
-                           'printer-library\assets\printer.example.json', 'printer-library\scripts\printer_library.py',
-                           'fdm-calibrate\SKILL.md', 'fdm-calibrate\references\practice.md', 'slice-compare\SKILL.md')) {
-            if (-not (Test-Path -LiteralPath (Join-Path $project ".agents\skills\$name"))) {
-                throw "Bootstrap omitted slicing skill file: $name"
-            }
-        }
-        if (-not (Test-Path -LiteralPath (Join-Path $project '.agents\scripts\review_guard.py'))) {
-            throw 'Bootstrap omitted the shared independent-review runtime.'
+        Assert-ProjectFiles $project $expected
+        foreach ($name in $excludedFiles) {
+            if (Test-Path -LiteralPath (Join-Path $project $name)) { throw "Setup copied excluded runtime data: $name" }
         }
         $helper = Join-Path $project '.agents\skills\orca-slice\scripts\start_orca.py'
         $setup = & py -3 $helper --setup-only 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0) { throw "Orca setup failed:`n$setup" }
-        $otherLauncher = if ($firstLauncher -eq 'Fusion-Claude.bat') { 'Fusion-Codex.bat' } else { 'Fusion-Claude.bat' }
+        foreach ($name in @('.mcp.json', '.codex\config.toml', 'settings.json')) {
+            $expected[$name] = (Get-FileHash -LiteralPath (Join-Path $project $name)).Hash
+        }
         foreach ($launcher in @($firstLauncher, $otherLauncher)) {
             $output = & (Join-Path $project $launcher) --setup-only 2>&1 | Out-String
             if ($LASTEXITCODE -ne 0 -or $output -match '(?m)^Error:') { throw "$launcher failed:`n$output" }
@@ -63,16 +82,13 @@ try {
                 $codex -notmatch 'http://127\.0\.0\.1:13618/mcp' -or
                 $settings.enabledMcpjsonServers -notcontains 'fusion' -or
                 $settings.enabledMcpjsonServers -notcontains 'orcaslicer' -or
-                $settings.autoMemoryEnabled -ne $false -or
-                (Get-FileHash -LiteralPath $projectFile).Hash -ne $contextHash -or
-                (Get-FileHash -LiteralPath $slicingFile).Hash -ne $slicingHash -or
-                (Get-FileHash -LiteralPath $printerFile).Hash -ne $printerHash -or
-                (Get-FileHash -LiteralPath $reviewPolicyFile).Hash -ne $reviewPolicyHash) {
+                $settings.autoMemoryEnabled -ne $false) {
                 throw "$launcher changed optional MCP configuration or project context."
             }
+            Assert-ProjectFiles $project $expected
         }
     }
-    Write-Output 'Combined setup passed in two fresh copies. Both agents preserved MCP entries, Project.md, slicing preferences, printer definitions, and existing review policy.'
+    Write-Output 'Combined setup passed in two fresh copies: all portable files copied, runtime data excluded, and both agents preserved MCP entries, context, printer definitions, review policy, customized instructions, skills and launchers.'
 }
 finally {
     $absoluteRoot = [System.IO.Path]::GetFullPath($testRoot).TrimEnd('\')

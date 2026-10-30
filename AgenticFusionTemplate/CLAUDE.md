@@ -1,12 +1,8 @@
 # Claude Code + Agentic Fusion
 
-Run `Fusion-Claude.bat` to initialize the project, start Fusion, wait for its local MCP server, and launch Claude Code with `settings.json`. `Fusion-Codex.bat` opens the same project in Codex.
+Run `Fusion-Claude.bat` to prepare the project and launch Claude Code with `settings.json` and the shared `.agents/` plugin. `Fusion-Codex.bat` opens the same project in Codex.
 
-Each session, read `Agentic-Fusion.md` and `Project.md`'s `Current state`; if absent, scan headings and read relevant sections only. Do not import either file through `@` directives.
-
-Follow the shared decision path. The launcher loads `.agents/` as the `agentic-fusion` plugin; invoke `fusion-model`, `fusion-print`, `orca-slice`, or `fusion-repair` as needed and read only relevant references. For Orca startup/slicing read `FDM-Slicing.md` and discover the `orcaslicer` tools by their actual schemas. Do not import skills or slicing context at startup.
-
-For FDM work, route printer definition/migration to `printer-library` and `Printers.json`, measured tuning to `fdm-calibrate`, and slicing experiments to `slice-compare`. These use the same physical skill files as Codex.
+Each session, read `Agentic-Fusion.md` and follow its context-reading and skill routing rules. Do not import it, `Project.md`, skills or slicing context through startup `@` directives. The `agentic-fusion` plugin uses the same physical skills as Codex.
 
 ## Claude Code tool and configuration rules
 

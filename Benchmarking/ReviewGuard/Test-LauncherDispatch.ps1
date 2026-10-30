@@ -16,8 +16,7 @@ try {
     $insert = $body.LastIndexOf('try { Start-AgenticFusion }')
     if ($insert -lt 0) { throw 'Cannot locate the launcher entrypoint.' }
     $stubs = @'
-function Confirm-Codex { return $true }
-function Confirm-Claude { return $true }
+function Confirm-Agent { param([string]$Name) return $true }
 function Test-McpPort { param([int]$Port) return $true }
 function Get-Process { [CmdletBinding()] param([string]$Name) return [pscustomobject]@{ProcessName='Fusion360'} }
 '@
