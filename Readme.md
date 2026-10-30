@@ -64,9 +64,7 @@ Use `fdm-calibrate` to plan and interpret measured printer/material calibration,
 
 ### Optional independent requirement review
 
-The experimental [independent-review runtime](AgenticFusionTemplate/Independent-Review.md) runs a second reviewer outside the primary process, captures original user requirements and actual changes, schedules implementation/delivery reviews, and automatically requests revisions. Its ledger reserves all review attempts against a default **12.4%** ratio. Missing budget, unknown usage, failure and inconclusive review hold delivery.
-
-Set `AGENTIC_REVIEW_TASK` to an operator-authored task file and `AGENTIC_REVIEW_POLICY` to a protected policy before running either Fusion launcher, or run the documented supervisor command directly. Normal sessions remain unguarded. The supplied policy fails closed before starting a model until a trusted bounded reviewer is configured. Claude's reported USD can be used; guarded Codex requires an external comparable meter. Neither native CLI's strict reviewer spend ceiling was established, so out-of-box paid review is **not ready**. The [assessment](Benchmarking/ReviewGuard/Assessment.md) distinguishes tested control behavior, simulated costs, live-model gaps and enforcement limits.
+Both agents use one [independent-review runtime and setup guide](AgenticFusionTemplate/Independent-Review.md), one policy, and the same external-meter default. Review decisions, revision limits and the 12.4% reviewer budget follow the same path. Paid activation still requires a trusted bounded reviewer and meter. See the [assessment](Benchmarking/ReviewGuard/Assessment.md) for tested parity and current limitations.
 
 ### Check the connection
 

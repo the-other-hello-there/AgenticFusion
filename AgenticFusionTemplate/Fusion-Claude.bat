@@ -128,8 +128,7 @@ function Initialize-ProjectFiles {
         '.mcp.json', 'settings.json', '.codex\config.toml',
         '.codex\hooks.json', '.agents\hooks\hooks.json', '.agents\scripts\task-complete.ps1',
         '.agents\.claude-plugin\plugin.json',
-        '.agents\review_guard\core.py', '.agents\review_guard\evidence.py',
-        '.agents\review_guard\adapters.py', '.agents\review_guard\supervisor.py',
+        '.agents\scripts\review_guard.py',
         '.agents\skills\fusion-model\SKILL.md',
         '.agents\skills\fusion-model\references\design-and-assembly.md',
         '.agents\skills\fusion-model\references\mcp.md',
@@ -369,7 +368,7 @@ function Start-AgenticFusion {
             throw 'Guarded tasks require Python 3.11+. No unguarded agent was started.'
         }
         $reviewPolicy = if ($env:AGENTIC_REVIEW_POLICY) { $env:AGENTIC_REVIEW_POLICY } else { Join-Path $ProjectDir 'Review-Policy.json' }
-        $reviewArgs = @('-3', (Join-Path $ProjectDir '.agents\review_guard\supervisor.py'), 'run',
+        $reviewArgs = @('-3', (Join-Path $ProjectDir '.agents\scripts\review_guard.py'), 'run',
                        '--agent', $env:AGENT, '--workspace', $ProjectDir,
                        '--requirements', $env:AGENTIC_REVIEW_TASK, '--policy', $reviewPolicy)
         if ($env:AGENTIC_REVIEW_STATE) { $reviewArgs += @('--state-dir', $env:AGENTIC_REVIEW_STATE) }

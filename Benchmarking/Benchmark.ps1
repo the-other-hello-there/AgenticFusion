@@ -76,7 +76,7 @@ function Test-LauncherSetup {
     $output = (& $launcher --setup-only 2>&1 | Out-String)
     if ($LASTEXITCODE -ne 0 -or $output -match '(?m)^Error:') { throw "$LauncherName setup failed:`n$output" }
     foreach ($file in @('Project.md', 'FDM-Slicing.md', 'Printers.json', '.mcp.json', '.codex\config.toml', 'settings.json',
-                        'Independent-Review.md', 'Review-Policy.json', '.agents\review_guard\supervisor.py',
+                        'Independent-Review.md', 'Review-Policy.json', '.agents\scripts\review_guard.py',
                         '.agents\skills\orca-slice\SKILL.md', '.agents\skills\orca-slice\scripts\start_orca.py',
                         '.agents\skills\printer-library\SKILL.md', '.agents\skills\printer-library\scripts\printer_library.py',
                         '.agents\skills\fdm-calibrate\SKILL.md', '.agents\skills\slice-compare\SKILL.md')) {

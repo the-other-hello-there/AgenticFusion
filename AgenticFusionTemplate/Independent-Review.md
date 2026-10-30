@@ -2,7 +2,7 @@
 
 This experimental runtime supervises a **whole task**, not an agent-selected review request. It launches a primary CLI with its output captured, automatically schedules implementation reviews from runtime tool events and actual filesystem changes, and requires an independent review before releasing the candidate answer. A rejection starts a fresh primary invocation with the original requirements and concise revision findings. Existing completion-tone hooks remain unchanged.
 
-The runtime is implemented in `.agents/review_guard/`, shared by Codex and Claude Code. Python 3.11+ and an installed primary CLI are needed. Other agents can use the documented trusted JSONL bridge contract below.
+The runtime is one shared file, `.agents/scripts/review_guard.py`, used by Codex and Claude Code with one `Review-Policy.json`. Python 3.11+ and an installed primary CLI are needed. Other agents can use the documented trusted JSONL bridge contract below.
 
 ## Readiness and limits
 
@@ -11,10 +11,12 @@ The runtime is implemented in `.agents/review_guard/`, shared by Codex and Claud
 The installed runtime probe checks CLI flags and versions without model calls:
 
 ```powershell
-py -3 .agents/review_guard/supervisor.py probe
+py -3 .agents/scripts/review_guard.py probe
 ```
 
-Codex's JSON stream provides token usage, which is not a shared task-credit or USD meter. A guarded Codex task needs an external `primary_meter_command` returning comparable provider-reported consumption. Claude print mode reports `total_cost_usd`; this is runtime-reported API-equivalent USD, not a subscription-credit conversion or invoice guarantee. USD budgeting is supported at the user's request. Token-priced estimates are not silently accepted as measured credits or USD.
+The default `primary_meter_mode: "external"` requires the same trusted `primary_meter_command` for both agents. It owns the ledger's primary consumption; native token/USD events are observations, not additional charges. Both runtimes therefore share the same metering prerequisites, boundary scheduling, budget checks, automatic revision and delivery behavior. Claude batches are expanded into one completed-tool event per result, matching Codex's individual tool events.
+
+Native billing still differs: Codex emits tokens; Claude may report `total_cost_usd` as API-equivalent USD, not subscription credits or an invoice guarantee. Explicit `primary_meter_mode: "runtime"` supports native Claude USD or a trusted custom bridge's receipts. It rejects unsupported runtime/unit combinations before launching a model and cannot be combined with an external meter. Missing mode fields default to external. No token-priced estimates are silently accepted as measured credits or USD.
 
 Claude offers `--max-budget-usd`, but this implementation has not verified a strict charge ceiling for an individual in-flight request, internal retry, or background operation. Neither native CLI is shipped as a supposedly hard-bounded reviewer. See the [Codex CLI reference](https://learn.chatgpt.com/docs/cli/reference), [Claude CLI reference](https://code.claude.com/docs/en/cli-reference), and [Claude costs](https://code.claude.com/docs/en/costs).
 
@@ -22,11 +24,11 @@ Claude offers `--max-budget-usd`, but this implementation has not verified a str
 
 Write the original user request verbatim into a task file through the operator/user channel. Keep the policy, reviewer implementation, meter and controller state outside the primary writable workspace, protected by its OS sandbox or a separate account/container. The controller loads requirements and policy before launching the primary; modifications made by the primary do not amend that in-memory authority.
 
-Configure a copy of `Review-Policy.json` with a trusted `reviewer_command` and an established `reviewer_enforces_charge_ceiling` contract. Set `unit` to `usd` or `credits`, consistently across every meter and reviewer receipt. Codex also needs a real primary meter; other custom runtime bridges must provide usage events. A `true` policy flag is an operator attestation, **not proof that an arbitrary adapter caps spending**.
+Configure a copy of `Review-Policy.json` with a trusted `reviewer_command` and an established `reviewer_enforces_charge_ceiling` contract. Set `unit` to `usd` or `credits`, consistently across every meter and reviewer receipt. Keep the default external-meter mode for identical Codex/Claude behavior; native runtime mode is an explicit capability-dependent option. A `true` policy flag is an operator attestation, **not proof that an arbitrary adapter caps spending**.
 
 ```powershell
-py -3 .agents/review_guard/supervisor.py run --agent codex --workspace . --requirements 'C:\ReviewControl\task.txt' --policy 'C:\ReviewControl\policy.json' --state-dir 'C:\ReviewControl\task-001'
-py -3 .agents/review_guard/supervisor.py run --agent claude --workspace . --requirements 'C:\ReviewControl\task.txt' --policy 'C:\ReviewControl\policy.json' --state-dir 'C:\ReviewControl\task-002'
+py -3 .agents/scripts/review_guard.py run --agent codex --workspace . --requirements 'C:\ReviewControl\task.txt' --policy 'C:\ReviewControl\policy.json' --state-dir 'C:\ReviewControl\task-001'
+py -3 .agents/scripts/review_guard.py run --agent claude --workspace . --requirements 'C:\ReviewControl\task.txt' --policy 'C:\ReviewControl\policy.json' --state-dir 'C:\ReviewControl\task-002'
 ```
 
 Both regular Fusion launchers can select this runtime by setting `AGENTIC_REVIEW_TASK` to that task file and `AGENTIC_REVIEW_POLICY` to the protected policy before launching. Their normal initialization/Fusion startup remains intact; the guarded task replaces the interactive agent invocation. Unset those variables for ordinary **unguarded** sessions. A primary child cannot unset environment variables in the already-running parent supervisor.
@@ -45,7 +47,7 @@ The primary must not call the reviewer itself, choose whether review happens, or
 Initial user exceptions can be provided through `--user-exceptions` as a JSON array of explicit user statements. A later exception uses the operator-only `authorize-exception` command, followed by `--resume`. Neither channel accepts a primary-generated file inside the workspace. It updates the authority hash while preserving original requirements, all costs, unknown reservations, attempts and revision counts; an exception does not reset the review budget. Changed original requirements require a deliberately authorized new task. Resume refuses unexplained authority/ledger mismatches.
 
 ```powershell
-py -3 .agents/review_guard/supervisor.py authorize-exception --workspace . --state-dir 'C:\ReviewControl\task-001' --statement-file 'C:\ReviewControl\actual-user-exception.txt'
+py -3 .agents/scripts/review_guard.py authorize-exception --workspace . --state-dir 'C:\ReviewControl\task-001' --statement-file 'C:\ReviewControl\actual-user-exception.txt'
 ```
 
 The operator must authenticate that the statement really came from the user. A process with the same unrestricted OS privileges could impersonate that operator; use a separate account/container or protected control channel for adversarial enforcement.
@@ -80,9 +82,9 @@ Reviewer output:
 
 A `revise` finding contains `requirement_quote`, `evidence`, and `issue`, each at most 600 characters. Failure, malformed output, wrong accounting units, incomplete coverage or missing usage never imply approval. A provider SDK/CLI bridge must independently implement request limits, metering, tool isolation and any internal-retry accounting. A bare CLI `--max-budget-usd` flag has not been established as sufficient for that contract.
 
-`primary_meter_command` receives `invocation`, `pid`, `unit`, and `final`. It returns non-overlapping **delta** receipts with `amount`, `unit`, `quality: "provider_reported"`, and a unique `measurement_id`. IDs are deduplicated. Do not return a new ID for the same cumulative account total, mix tasks, or convert subscription usage using API prices.
+`primary_meter_command` receives `invocation`, `pid`, `unit`, `final`, and observed `runtime_usage` receipts (possibly empty). It returns non-overlapping **delta** receipts with `amount`, `unit`, `quality: "provider_reported"`, and a unique `measurement_id`. IDs are deduplicated. Native receipts are not also added to the ledger in external mode; even a missing native USD field does not bypass the external meter or fail an otherwise metered task. Do not return a new ID for the same cumulative account total, mix tasks, or convert subscription usage using API prices.
 
-For other primary agents, set `primary_command` and use `--agent custom`. The trusted bridge reads the supervisor prompt from stdin and emits JSONL runtime events: `usage` with a delta receipt, `tool_completed` with `actual_event` and `external_effect`, and terminal `completed` with `text` and a final usage receipt. `candidate` text is never parsed as authority or metering. These events must come from the runtime, not from the model emitting JSON as its answer.
+For other primary agents, set `primary_command` and use `--agent custom`. The trusted bridge reads the supervisor prompt from stdin and emits JSONL runtime events: `usage` with a delta receipt, `tool_completed` with `actual_event` and `external_effect`, and terminal `completed` with `text` and a final usage receipt. In external mode the bridge's usage is observational; only the external meter charges the primary ledger. In runtime mode a comparable terminal receipt is mandatory. `candidate` text is never parsed as authority or metering. These events must come from the runtime, not from the model emitting JSON as its answer.
 
 `external_evidence_command` is an optional independent, read-only domain observer. It receives the workspace and current artifact digest and returns actual observed state and `coverage_complete`. Use it for Fusion/OrcaMCP or other external effects. Without it, observed MCP calls leave coverage incomplete. Binary changes, linked paths, and evidence exceeding limits also hold review. This version does not provide a Fusion geometry or Orca print-result verifier.
 
@@ -93,3 +95,9 @@ This is a functioning supervisor/gate, not a guarantee against a hostile same-us
 `.git` internals, Python caches, `.credentials.json`, and `.claude.json` are excluded from file evidence; arbitrary shell effects outside the workspace are not comprehensively observed. The interpreter is protected from ordinary in-task source edits because its controller code is already loaded, but a later launch from modified source is not trusted installation. Install/vet controller code outside the editable project for protected operation. Normal unguarded CLI sessions are outside coverage.
 
 Native hook documentation supports automation but does not remove these limits: non-managed Codex hooks require trust; post-tool review cannot undo operations, and hook failures/unsupported controls can continue execution. Claude also documents stop-hook continuation limits. For that reason a mutable project Stop hook is not used as the final authority. [Codex hooks](https://learn.chatgpt.com/docs/hooks), [Claude hooks](https://code.claude.com/docs/en/hooks)
+
+## Portable file layout and upgrades
+
+The distributed folder has one review runtime script, one policy, and this setup reference. Agent entry files use the shared `Agentic-Fusion.md` routing instead of maintaining separate review procedures. Tests and assessment notes stay at repository root; generated assessment JSON is optional and ignored. Runtime receipts/audit packets remain outside the project.
+
+For older project copies, setup still preserves existing launchers, policy and context. To adopt the unified script, bring over the new shared `Fusion-Claude.bat` while retaining any project-specific Fusion path/port edits, copy `.agents/scripts/review_guard.py`, and review the policy's explicit meter mode. The old `.agents/review_guard/` directory may be removed only after checking that local launchers, protected installs and custom integrations no longer reference it. Setup never deletes it automatically.

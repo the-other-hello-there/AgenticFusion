@@ -8,7 +8,7 @@ For maintenance checks without an installed slicer, run `py -3 Benchmarking/Test
 
 Run `py -3 Benchmarking/Test-PrinterLibrary.py` for printer catalog/preset transfer checks. The combined setup check also verifies that both launchers preserve an existing printer library.
 
-Run `py -3 Benchmarking/ReviewGuard/Run-Assessment.py` for the independent-review control tests, local runtime capability probe, and explicitly simulated ledgers. See [the assessment](ReviewGuard/Assessment.md) for detection/cost results and limitations; these tests do not invoke live AI reviewers.
+Run `py -3 Benchmarking/Test-ReviewGuard.py --assessment` for independent-review controls, Codex/Claude event-stream parity, the local capability probe and explicitly simulated ledgers. Optional `--output Benchmarking/.runs/review-assessment.json` saves an ignored report. See [the assessment](ReviewGuard/Assessment.md) for results and limitations; these tests do not invoke live AI reviewers.
 
 Run these in order in a **disposable Fusion project** using a fresh copy of the template for each version you compare. Start the chosen agent through `Fusion-Claude.bat` or `Fusion-Codex.bat`, open a new blank Fusion design before B1, and keep the same project and design through B6. Before B3, select one mounting-hole feature in Fusion's timeline. Before B7, close the agent and reopen it through the same batch file. Start timing when you send each prompt and stop when the agent finishes its answer; record the change in the credit or usage measure you have available. Keep the same measurement method across versions. Do not include your own preparation or review time.
 

@@ -42,10 +42,8 @@ try {
                 throw "Bootstrap omitted slicing skill file: $name"
             }
         }
-        foreach ($name in @('core.py', 'adapters.py', 'evidence.py', 'supervisor.py')) {
-            if (-not (Test-Path -LiteralPath (Join-Path $project ".agents\review_guard\$name"))) {
-                throw "Bootstrap omitted independent-review runtime file: $name"
-            }
+        if (-not (Test-Path -LiteralPath (Join-Path $project '.agents\scripts\review_guard.py'))) {
+            throw 'Bootstrap omitted the shared independent-review runtime.'
         }
         $helper = Join-Path $project '.agents\skills\orca-slice\scripts\start_orca.py'
         $setup = & py -3 $helper --setup-only 2>&1 | Out-String
