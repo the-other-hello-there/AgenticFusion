@@ -62,6 +62,12 @@ py -3 .agents/skills/printer-library/scripts/printer_library.py import --source 
 
 Use `fdm-calibrate` to plan and interpret measured printer/material calibration, and `slice-compare` to compare estimated time/material/quality tradeoffs while restoring the accepted baseline. Calibration evidence and job outcomes stay in `Project.md` or its indexed notes; reusable user preferences stay in `FDM-Slicing.md`. Both agents discover the same physical skill files.
 
+### Optional independent requirement review
+
+The experimental [independent-review runtime](AgenticFusionTemplate/Independent-Review.md) runs a second reviewer outside the primary process, captures original user requirements and actual changes, schedules implementation/delivery reviews, and automatically requests revisions. Its ledger reserves all review attempts against a default **12.4%** ratio. Missing budget, unknown usage, failure and inconclusive review hold delivery.
+
+Set `AGENTIC_REVIEW_TASK` to an operator-authored task file and `AGENTIC_REVIEW_POLICY` to a protected policy before running either Fusion launcher, or run the documented supervisor command directly. Normal sessions remain unguarded. The supplied policy fails closed before starting a model until a trusted bounded reviewer is configured. Claude's reported USD can be used; guarded Codex requires an external comparable meter. Neither native CLI's strict reviewer spend ceiling was established, so out-of-box paid review is **not ready**. The [assessment](Benchmarking/ReviewGuard/Assessment.md) distinguishes tested control behavior, simulated costs, live-model gaps and enforcement limits.
+
 ### Check the connection
 
 Inside the chosen agent, check `/mcp` for the `fusion` server. From a terminal in the project folder, `claude mcp list` or `codex mcp list` can also inspect configured servers. A safe first prompt is: “List the active Fusion document and its components without changing the design.” See the [Claude MCP guide](https://code.claude.com/docs/en/mcp) and [Codex MCP guide](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).

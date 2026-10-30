@@ -1,0 +1,78 @@
+{
+  "assessment_kind": "deterministic_control_tests_not_live_AI_detection",
+  "tests_run": 23,
+  "tests_passed": true,
+  "failures": [],
+  "runtime_capability_probe": {
+    "codex": {
+      "available": true,
+      "version": "codex-cli 0.164.0",
+      "json_stream": true,
+      "provider_usd_result_documented": false,
+      "live_receipt_verified": false,
+      "max_budget_usd_flag": false,
+      "native_task_credits_verified": false,
+      "strict_per_request_charge_cap_verified": false,
+      "notes": "Usage tokens are available; no shared credit/USD meter or exec spend cap established."
+    },
+    "claude": {
+      "available": true,
+      "version": "2.1.312 (Claude Code)",
+      "json_stream": true,
+      "provider_usd_result_documented": true,
+      "live_receipt_verified": false,
+      "max_budget_usd_flag": true,
+      "native_task_credits_verified": false,
+      "strict_per_request_charge_cap_verified": false,
+      "notes": "Print mode reports total_cost_usd and offers --max-budget-usd; a strict in-flight charge ceiling is not established."
+    }
+  },
+  "examples": [
+    {
+      "scenario": "unfamiliar",
+      "status": "cleared",
+      "simulated_usd_ledger": {
+        "unit": "usd",
+        "primary_measured": "1",
+        "review_charged_or_reserved": "0.02",
+        "review_ratio": "0.02",
+        "ratio_limit": "0.124",
+        "attempts": 2,
+        "budget_breach": false,
+        "unknown_charges": 0
+      }
+    },
+    {
+      "scenario": "revise",
+      "status": "cleared",
+      "simulated_usd_ledger": {
+        "unit": "usd",
+        "primary_measured": "2",
+        "review_charged_or_reserved": "0.03",
+        "review_ratio": "0.015",
+        "ratio_limit": "0.124",
+        "attempts": 3,
+        "budget_breach": false,
+        "unknown_charges": 0
+      }
+    },
+    {
+      "scenario": "fabricated_approval",
+      "status": "held",
+      "simulated_usd_ledger": {
+        "unit": "usd",
+        "primary_measured": "3",
+        "review_charged_or_reserved": "0.01",
+        "review_ratio": "0.003333333333333333333333333333",
+        "ratio_limit": "0.124",
+        "attempts": 1,
+        "budget_breach": false,
+        "unknown_charges": 0
+      }
+    }
+  ],
+  "remote_primary_or_reviewer_model_calls": 0,
+  "actual_reviewer_model_charges_usd": "0",
+  "live_AI_detection_accuracy": "not measured",
+  "native_paid_review_ready": false
+}

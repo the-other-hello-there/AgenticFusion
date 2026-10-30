@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "unit": "usd",
+  "max_review_ratio": "0.124",
+  "review_call_ceiling": "0.01",
+  "max_reviews": 3,
+  "max_revisions": 2,
+  "boundary_tool_count": 4,
+  "max_packet_bytes": 180000,
+  "primary_timeout_seconds": 1800,
+  "review_timeout_seconds": 60,
+  "primary_command": null,
+  "primary_meter_command": null,
+  "reviewer_command": null,
+  "reviewer_enforces_charge_ceiling": false,
+  "external_evidence_command": null
+}

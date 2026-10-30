@@ -20,6 +20,8 @@ At session start, read `Project.md`'s `Current state` for intent, interfaces, pa
 
 Re-read an authored file after editing it in the same session.
 
+For supervised tasks, use the runtime described in `Independent-Review.md`. It retains original user requirements and independently gates its delivery channel; the primary cannot waive required reviews or authorize exceptions. Budget exhaustion, failure and missing evidence never establish approval. This runtime requires protected controller state and a verified bounded reviewer/meter adapter; ordinary unguarded launches are not covered.
+
 ## Authority and memory
 
 - Priority: `Project.md`'s design intent and function, then generic design rules, then DfAM preferences; ask about conflicts. Assembly symmetry outranks a printing tweak that breaks it.

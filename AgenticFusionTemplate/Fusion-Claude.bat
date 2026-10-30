@@ -124,10 +124,12 @@ function Write-ProjectJson {
 
 function Initialize-ProjectFiles {
     $portable = @(
-        'Fusion-Claude.bat', 'Fusion-Codex.bat', 'Agentic-Fusion.md', 'DfAM.md', 'FDM-Slicing.md', 'Printers.json', 'CLAUDE.md', 'AGENTS.md', '.gitignore',
+        'Fusion-Claude.bat', 'Fusion-Codex.bat', 'Agentic-Fusion.md', 'DfAM.md', 'FDM-Slicing.md', 'Printers.json', 'Independent-Review.md', 'Review-Policy.json', 'CLAUDE.md', 'AGENTS.md', '.gitignore',
         '.mcp.json', 'settings.json', '.codex\config.toml',
         '.codex\hooks.json', '.agents\hooks\hooks.json', '.agents\scripts\task-complete.ps1',
         '.agents\.claude-plugin\plugin.json',
+        '.agents\review_guard\core.py', '.agents\review_guard\evidence.py',
+        '.agents\review_guard\adapters.py', '.agents\review_guard\supervisor.py',
         '.agents\skills\fusion-model\SKILL.md',
         '.agents\skills\fusion-model\references\design-and-assembly.md',
         '.agents\skills\fusion-model\references\mcp.md',
@@ -312,6 +314,7 @@ function Start-AgenticFusion {
     if ($env:AGENT -eq 'codex') {
         if (-not (Confirm-Codex)) {
             Write-Host "Codex ('codex') was not found on PATH or in the usual install folders. Install it, then run this again." -ForegroundColor Red
+            if ($env:AGENTIC_REVIEW_TASK) { throw 'Guarded task could not start its primary runtime.' }
             return
         }
     }
@@ -320,6 +323,7 @@ function Start-AgenticFusion {
         Remove-Item Env:CLAUDE_CONFIG_DIR -ErrorAction SilentlyContinue
         if (-not (Confirm-Claude)) {
             Write-Host "Claude Code ('claude') was not found on PATH or in the usual install folders. Install it, then run this again." -ForegroundColor Red
+            if ($env:AGENTIC_REVIEW_TASK) { throw 'Guarded task could not start its primary runtime.' }
             return
         }
     }
@@ -333,6 +337,7 @@ function Start-AgenticFusion {
         $launcher = if ($FusionPath) { $FusionPath } else { Find-FusionLauncher }
         if (-not $launcher) {
             Write-Host "Couldn't find a Fusion launcher. Set `$FusionPath at the top of this file." -ForegroundColor Red
+            if ($env:AGENTIC_REVIEW_TASK) { throw 'Guarded Fusion task could not start Fusion.' }
             return
         }
         Write-Host "Starting Fusion: $launcher"
@@ -359,7 +364,20 @@ function Start-AgenticFusion {
         }
     }
 
-    if ($env:AGENT -eq 'codex') {
+    if ($env:AGENTIC_REVIEW_TASK) {
+        if (-not (Get-Command py -ErrorAction SilentlyContinue)) {
+            throw 'Guarded tasks require Python 3.11+. No unguarded agent was started.'
+        }
+        $reviewPolicy = if ($env:AGENTIC_REVIEW_POLICY) { $env:AGENTIC_REVIEW_POLICY } else { Join-Path $ProjectDir 'Review-Policy.json' }
+        $reviewArgs = @('-3', (Join-Path $ProjectDir '.agents\review_guard\supervisor.py'), 'run',
+                       '--agent', $env:AGENT, '--workspace', $ProjectDir,
+                       '--requirements', $env:AGENTIC_REVIEW_TASK, '--policy', $reviewPolicy)
+        if ($env:AGENTIC_REVIEW_STATE) { $reviewArgs += @('--state-dir', $env:AGENTIC_REVIEW_STATE) }
+        Write-Host 'Starting the independent task supervisor. Candidate output is withheld until review clears.' -ForegroundColor Cyan
+        & py @reviewArgs
+        exit $LASTEXITCODE
+    }
+    elseif ($env:AGENT -eq 'codex') {
         Write-Host "Starting Codex in $ProjectDir" -ForegroundColor Cyan
         codex
     }
@@ -370,4 +388,7 @@ function Start-AgenticFusion {
 }
 
 try { Start-AgenticFusion }
-catch { Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red }
+catch {
+    Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
+    if ($env:AGENTIC_REVIEW_TASK -and $env:SETUP_ONLY -ne '1') { exit 2 }
+}

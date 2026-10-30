@@ -23,6 +23,11 @@ try {
         $printerLibrary = @{ schema_version = 1; printers = @($printerRecord) } | ConvertTo-Json -Depth 50
         [System.IO.File]::WriteAllText($printerFile, $printerLibrary, $utf8)
         $printerHash = (Get-FileHash -LiteralPath $printerFile).Hash
+        $reviewPolicyFile = Join-Path $project 'Review-Policy.json'
+        $reviewPolicy = Get-Content -LiteralPath (Join-Path $templateDir 'Review-Policy.json') -Raw | ConvertFrom-Json
+        $reviewPolicy.max_review_ratio = '0.12'
+        [System.IO.File]::WriteAllText($reviewPolicyFile, ($reviewPolicy | ConvertTo-Json -Depth 20), $utf8)
+        $reviewPolicyHash = (Get-FileHash -LiteralPath $reviewPolicyFile).Hash
         $bootstrap = & (Join-Path $templateDir $firstLauncher) $project --setup-only 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0 -or $bootstrap -match '(?m)^Error:') { throw "Bootstrap failed:`n$bootstrap" }
         foreach ($name in @('SKILL.md', 'references\startup.md', 'references\workflow.md', 'scripts\start_orca.py')) {
@@ -35,6 +40,11 @@ try {
                            'fdm-calibrate\SKILL.md', 'fdm-calibrate\references\practice.md', 'slice-compare\SKILL.md')) {
             if (-not (Test-Path -LiteralPath (Join-Path $project ".agents\skills\$name"))) {
                 throw "Bootstrap omitted slicing skill file: $name"
+            }
+        }
+        foreach ($name in @('core.py', 'adapters.py', 'evidence.py', 'supervisor.py')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $project ".agents\review_guard\$name"))) {
+                throw "Bootstrap omitted independent-review runtime file: $name"
             }
         }
         $helper = Join-Path $project '.agents\skills\orca-slice\scripts\start_orca.py'
@@ -58,12 +68,13 @@ try {
                 $settings.autoMemoryEnabled -ne $false -or
                 (Get-FileHash -LiteralPath $projectFile).Hash -ne $contextHash -or
                 (Get-FileHash -LiteralPath $slicingFile).Hash -ne $slicingHash -or
-                (Get-FileHash -LiteralPath $printerFile).Hash -ne $printerHash) {
+                (Get-FileHash -LiteralPath $printerFile).Hash -ne $printerHash -or
+                (Get-FileHash -LiteralPath $reviewPolicyFile).Hash -ne $reviewPolicyHash) {
                 throw "$launcher changed optional MCP configuration or project context."
             }
         }
     }
-    Write-Output 'Combined setup passed in two fresh copies, starting with each agent and switching to the other. Both MCP entries, Project.md, FDM-Slicing.md, and existing printer definitions were preserved.'
+    Write-Output 'Combined setup passed in two fresh copies. Both agents preserved MCP entries, Project.md, slicing preferences, printer definitions, and existing review policy.'
 }
 finally {
     $absoluteRoot = [System.IO.Path]::GetFullPath($testRoot).TrimEnd('\')

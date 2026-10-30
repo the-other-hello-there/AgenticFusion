@@ -8,6 +8,8 @@ Follow the shared decision path. The launcher loads `.agents/` as the `agentic-f
 
 For FDM work, route printer definition/migration to `printer-library` and `Printers.json`, measured tuning to `fdm-calibrate`, and slicing experiments to `slice-compare`. These use the same physical skill files as Codex.
 
+For supervised tasks the outside supervisor owns original requirements, automatic reviews, spending and delivery; primary-agent summaries cannot authorize exceptions. A held/failed/exhausted review is not approval. `Independent-Review.md` is the operator setup reference, loaded only when needed. Ordinary unguarded sessions are outside coverage.
+
 ## Claude Code tool and configuration rules
 
 - Load the Fusion tools via ToolSearch:

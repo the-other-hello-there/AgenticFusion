@@ -7,3 +7,5 @@ Each session, read `Agentic-Fusion.md` and `Project.md`'s `Current state` for in
 Fusion is the project-scoped HTTP MCP server `fusion` in `.codex/config.toml`. Use its read, execute, and update tools per `Agentic-Fusion.md`; inspect schemas because Claude tool IDs may differ. Keep Codex sign-in and runtime data in the normal user profile, never `CODEX_HOME` here. Record durable verified facts in `Project.md`, not session memory.
 
 For FDM work, route printer definition/migration to `printer-library` and `Printers.json`, measured tuning to `fdm-calibrate`, and slicing experiments to `slice-compare`. Keep those shared skills on demand.
+
+For a supervised task, `Independent-Review.md` describes the outside runtime and `Review-Policy.json`. The supervisor owns review scheduling, original requirements, spending and delivery. A held/failed/exhausted review is not approval; only the real user may authorize requirement exceptions. Ordinary unguarded sessions are outside this runtime's coverage.
