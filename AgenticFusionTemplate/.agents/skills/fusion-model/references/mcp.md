@@ -9,6 +9,7 @@
 - **Check a parameter's sign before negating it in an expression:** a back face may already be stored negative, so `-param` lands on the wrong side. A sketch that flips sides this way can split the body.
 - Look up the API with `queryType: "apiDocumentation"` (a `filter` like `adsk.fusion.LoftFeatureInput`, `apiCategory` member/class) instead of guessing.
 - Build in a new scratch document first. Close an unsaved draft with `doc.close(False)`, and touch saved documents only once the result is verified.
+- Close unused reference/scratch documents promptly under the shared [application-session lifecycle](../../application-session/references/lifecycle.md). Before an agent-limit handoff or 12-hour app maintenance, finish/identify in-flight calls, save and verify through this workflow, and record a restart checkpoint. User restart approval never authorizes discarding an unsaved document or forcing a close.
 - To replace a saved design as a new version: `timeline.moveToBeginning(); timeline.deleteAllAfterMarker()`, delete the user parameters, rebuild in the same document, then `doc.save(msg)`.
 - Name a new part with `doc.saveAs(name, app.data.activeProject.rootFolder, desc, '')`. The root component's name follows the document name.
 - **Comparing with an earlier version:**

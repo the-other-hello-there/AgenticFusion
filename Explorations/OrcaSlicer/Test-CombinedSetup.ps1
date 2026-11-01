@@ -25,17 +25,23 @@ try {
         $printerHash = (Get-FileHash -LiteralPath $printerFile).Hash
         $bootstrap = & (Join-Path $templateDir $firstLauncher) $project --setup-only 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0 -or $bootstrap -match '(?m)^Error:') { throw "Bootstrap failed:`n$bootstrap" }
-        foreach ($name in @('SKILL.md', 'references\startup.md', 'references\workflow.md', 'scripts\start_orca.py')) {
+        foreach ($name in @('SKILL.md', 'references\startup.md', 'references\workflow.md',
+                            'references\settings.md', 'references\layer-height.md', 'references\support-materials.md', 'scripts\start_orca.py',
+                            'scripts\slicer.py', 'scripts\slicer_windows.ps1')) {
             if (-not (Test-Path -LiteralPath (Join-Path $project ".agents\skills\orca-slice\$name"))) {
                 throw "Bootstrap omitted Orca skill file: $name"
             }
         }
         foreach ($name in @('printer-library\SKILL.md', 'printer-library\references\format.md',
                            'printer-library\assets\printer.example.json', 'printer-library\scripts\printer_library.py',
-                           'fdm-calibrate\SKILL.md', 'fdm-calibrate\references\practice.md', 'slice-compare\SKILL.md')) {
+                           'fdm-calibrate\SKILL.md', 'fdm-calibrate\references\practice.md', 'slice-compare\SKILL.md',
+                           'application-session\SKILL.md', 'application-session\references\lifecycle.md')) {
             if (-not (Test-Path -LiteralPath (Join-Path $project ".agents\skills\$name"))) {
                 throw "Bootstrap omitted slicing skill file: $name"
             }
+        }
+        if (-not (Test-Path -LiteralPath (Join-Path $project '.agents\scripts\application-session.ps1'))) {
+            throw 'Bootstrap omitted the shared application-session helper.'
         }
         $helper = Join-Path $project '.agents\skills\orca-slice\scripts\start_orca.py'
         $setup = & py -3 $helper --setup-only 2>&1 | Out-String

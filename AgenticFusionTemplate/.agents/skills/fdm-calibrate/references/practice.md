@@ -11,6 +11,7 @@ Start from the requested goal or evidence. Prefer the installed slicer's relevan
 | Maximum volumetric flow | Hold nozzle/material/temperature fixed, observe the onset of quality loss, and record the usable tested range and chosen margin. A calculated speed is not proof of sustainable flow. |
 | Retraction/cooling/bridging | Use a specimen matching the symptom and distinguish moisture, temperature, travel and cooling effects. Avoid transferring a result across different hotends without a new check. |
 | Fit/dimensions | Measure several axes/features and distinguish shrinkage, hole behavior, first-layer expansion, flow and source geometry. Keep an intentional CAD clearance separate from a printer-wide compensation. |
+| Adaptive-height or material-swap bonding | Read `orca-slice`'s [layer-height](../../orca-slice/references/layer-height.md) or [support-material](../../orca-slice/references/support-materials.md) procedure as applicable. Separate actual flow/cooling/classification effects from contamination and contact defects; use a small controlled specimen and inspect bonding as well as support removal. A smoother height graph or cleanly removable interface does not establish structural adhesion. |
 
 For every trial, record a specimen ID/path, baseline and changed values with units, measurement conditions, pass/fail observations and uncertainty. Use the same comparison method between trials. A photograph may support a visual judgment but cannot establish an exact dimension without a scale/measurement.
 

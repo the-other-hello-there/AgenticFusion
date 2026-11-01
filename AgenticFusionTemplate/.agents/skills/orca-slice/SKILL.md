@@ -1,22 +1,29 @@
 ---
 name: orca-slice
-description: Start OrcaSlicer with its OrcaMCP server, connect Codex and Claude Code, and prepare or inspect FDM slices. Use for slicer startup, profiles, plate settings, slicing, and slice results; use fusion-print for CAD printability changes.
+description: Coordinate FDM slice jobs with installed Orca-family slicers, including Snapmaker and Windows Store builds. Discover and ask which slicer to use, prepare/slice headlessly when supported, then open the actual result for non-disruptive UI preview. Use fusion-print for CAD printability and fdm-calibrate for measured tuning.
 ---
 
-# OrcaSlicer and FDM slicing
+# FDM slicing coordinator
 
-Read `FDM-Slicing.md` for slicing rules/preferences, the selected `Printers.json` record, and `Project.md`'s current part and print state. Keep CAD intent and verified export/slice results in `Project.md`; do not turn an installed printer profile into an assumed user preference.
+Read `FDM-Slicing.md`, relevant `Project.md` intent/print state and the selected `Printers.json` record. Policy lives there; do not infer preferences or ownership from installed profiles. Design-intent exceptions need a recorded rule/reason. High infill requires user-declared final status; a second support-interface material requires approval of a concrete plan before application.
 
-For startup or connection problems, read [startup](references/startup.md). From the project folder run:
+For a new slicing request, read the [workflow, hierarchy and flowchart](references/workflow.md). Discover installed apps before opening/probing any candidate:
 
 ```powershell
-py -3 .agents/skills/orca-slice/scripts/start_orca.py --configure
+py -3 .agents/skills/orca-slice/scripts/slicer.py list
 ```
 
-The helper starts an installed **OrcaMCP community build**, whose embedded server starts with the app, verifies MCP initialization and tool discovery, and registers `orcaslicer` for both agents. It reuses the configured endpoint when already available. It needs Python 3.11+ and accepts `--executable` or `ORCAMCP_APP_PATH`. Stock OrcaSlicer and Snapmaker Orca do not become MCP-capable merely by launching them. Do not silently substitute a different application or instance.
+Ask which found slicer to use, even with one result. An unambiguous slicer named in the request is already a choice. Retain it through job follow-ups; ask again for a new job. Do not silently substitute an old selection or a running MCP endpoint. `--executable` includes a portable install; Python 3.11+ is required by the standard-library helpers.
 
-After first registration, reconnect/restart the client's MCP session as needed and discover the actual tool schemas; names may differ between clients and builds. For slicing, read [workflow](references/workflow.md). Verify printer, nozzle, material, profiles, source dimensions, plate, and orientation before slicing. Report actual completion, warnings, units, estimates, and saved artifacts. Starting the slicer does not authorize uploads, heating, printer movement, or a print job.
+Load the needed procedure:
 
-Record new user-stated preferences in `FDM-Slicing.md` and confirmed job facts in `Project.md`. Re-read changed context. Use `fusion-print` for a CAD printability review and `fusion-model` for a requested parametric geometry edit.
+- [Settings and verification](references/settings.md): translate user rules into actual supported settings, resolve feature conflicts, apply job-local overrides and read back effective values.
+- [Layer height](references/layer-height.md): apply R12 adaptive height plus smoothing; verify the saved schedule, shell coverage, support compatibility and flow.
+- [Support materials](references/support-materials.md): only when proposing/applying a second interface material or diagnosing weak swap layers. Prepare the plan before requesting its required approval.
+- [Startup and UI access](references/startup.md): discovery/launch problems, Store activation, non-disruptive background controls and optional MCP. Embedded MCP in a GUI app is not headless.
 
-Use `printer-library` to define/migrate machines and presets, `fdm-calibrate` for measured printer/material tuning, and `slice-compare` for controlled slicing comparisons.
+Default to verified CLI preparation/slicing, then open the completed slice for required layer/toolpath UI preview. `slicer.py slice --select ID ...` opens results after toolpath checks; do not open the source model first. Intermediate comparisons may use `--no-open`; the final result still needs UI preview. Explain an indispensable earlier UI setup exception. Read the chosen build's actual help/schema; never invent an unsupported flag or claim an ignored setting worked.
+
+Window control is allowed only without interrupting normal computer use. Never move the user's cursor, seize focus, send global input or overwrite the clipboard. Use APIs/background controls; if tools cannot comply, keep artifacts and report the exact pending UI check. A window opening is not proof of a completed preview.
+
+Use `printer-library` for portable machines/presets, `fusion-print` for CAD printability, `fdm-calibrate` for physical evidence and `slice-compare` for controlled variants. Record verified job results/exceptions in `Project.md`; reusable user preferences in `FDM-Slicing.md`. Slicing/preview does not authorize printer upload, heating, movement or printing.

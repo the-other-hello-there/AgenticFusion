@@ -127,7 +127,10 @@ function Initialize-ProjectFiles {
         'Fusion-Claude.bat', 'Fusion-Codex.bat', 'Agentic-Fusion.md', 'DfAM.md', 'FDM-Slicing.md', 'Printers.json', 'CLAUDE.md', 'AGENTS.md', '.gitignore',
         '.mcp.json', 'settings.json', '.codex\config.toml',
         '.codex\hooks.json', '.agents\hooks\hooks.json', '.agents\scripts\task-complete.ps1',
+        '.agents\scripts\application-session.ps1',
         '.agents\.claude-plugin\plugin.json',
+        '.agents\skills\application-session\SKILL.md',
+        '.agents\skills\application-session\references\lifecycle.md',
         '.agents\skills\fusion-model\SKILL.md',
         '.agents\skills\fusion-model\references\design-and-assembly.md',
         '.agents\skills\fusion-model\references\mcp.md',
@@ -151,7 +154,12 @@ function Initialize-ProjectFiles {
         '.agents\skills\orca-slice\SKILL.md',
         '.agents\skills\orca-slice\references\startup.md',
         '.agents\skills\orca-slice\references\workflow.md',
+        '.agents\skills\orca-slice\references\settings.md',
+        '.agents\skills\orca-slice\references\layer-height.md',
+        '.agents\skills\orca-slice\references\support-materials.md',
         '.agents\skills\orca-slice\scripts\start_orca.py',
+        '.agents\skills\orca-slice\scripts\slicer.py',
+        '.agents\skills\orca-slice\scripts\slicer_windows.ps1',
         '.agents\skills\printer-library\SKILL.md',
         '.agents\skills\printer-library\references\format.md',
         '.agents\skills\printer-library\assets\printer.example.json',
@@ -184,6 +192,7 @@ function Initialize-ProjectFiles {
 - **Key parameters and expressions:** TBD
 - **Accepted decisions and verified geometry:** TBD
 - **Open items:** TBD
+- **Restart checkpoint:** No restart prepared; record saved document/job identifiers and ordered pending tasks before any usage-limit handoff or application restart.
 
 This file holds the current design intent and decisions for this design only. Keep this section concise and see `Agentic-Fusion.md` for context size and placement rules.
 
@@ -357,6 +366,20 @@ function Start-AgenticFusion {
         else {
             Write-Warning "MCP server not detected. Open a design in Fusion and tick Preferences > General > API > 'Fusion MCP Server'. Starting $($env:AGENT) anyway."
         }
+    }
+
+    # Register actual Fusion sessions only after setup-only has returned. No AI process is watched.
+    $sessionHelper = Join-Path $ProjectDir '.agents\scripts\application-session.ps1'
+    $restartLauncher = if ($FusionPath) { $FusionPath } elseif ($launcher) { $launcher } else { Find-FusionLauncher }
+    foreach ($fusionSession in @(Get-Process -Name $ProcessName -ErrorAction SilentlyContinue)) {
+        try {
+            $trackArgs = @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',$sessionHelper,
+                '-Action','Register','-ProjectDir',$ProjectDir,'-ProcessId',$fusionSession.Id,'-Kind','Fusion','-StartMonitor')
+            if ($restartLauncher) { $trackArgs += @('-LaunchPath', $restartLauncher) }
+            $registration = & powershell.exe @trackArgs | Out-String
+            if ($LASTEXITCODE -ne 0) { throw 'Session registration failed.' }
+            Write-Host "Fusion session $($fusionSession.Id) tracked for the 12-hour maintenance deadline."
+        } catch { Write-Warning "Application tracking needs attention: $($_.Exception.Message) Use application-session before substantial work." }
     }
 
     if ($env:AGENT -eq 'codex') {

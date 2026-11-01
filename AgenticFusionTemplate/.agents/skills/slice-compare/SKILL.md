@@ -9,6 +9,8 @@ Read `FDM-Slicing.md`, the selected printer definition and current `Project.md` 
 
 Define a small named variant set for the user's question. Change one variable at a time, or state exactly what a coupled variant changes. Do not alter CAD geometry or an accepted orientation unless requested. Preserve unsaved overrides and the original scene/profile selection before trying variants; use independent local project copies when reliable restoration is unavailable.
 
+Every variant follows `FDM-Slicing.md`, including directly stacked infill, final-only high density and approved-only second support-interface material. Record an actual design-intent exception rather than treating an experiment as an automatic waiver. Use `orca-slice`'s planning/settings references; keep intermediate slices headless and open the selected final result for UI preview through non-disruptive background access. Do not move the user's cursor or seize focus to compare previews.
+
 For each variant, wait for completion and read actual warnings, time and filament estimates with units. Verify that those estimates belong to that variant's current geometry/settings. Save comparison artifacts only within the requested scope. Mark failed or unavailable results explicitly; never rank a stale/failed slice as a valid candidate.
 
 Report a table with the baseline, changed settings, estimated time, filament mass/length, supports, warnings and relevant requirement checks. State percentage deltas only for compatible nonzero baselines. Do not equate more infill with a quantified strength improvement or infer mechanical performance from slice estimates alone. Explain tradeoffs when no variant dominates.

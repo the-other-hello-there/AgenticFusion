@@ -4,9 +4,13 @@ Run `Run-Benchmark.bat` from this folder for a guided Windows benchmark. It copi
 
 ## Benchmark prompts
 
-For maintenance checks without an installed slicer, run `py -3 Benchmarking/Test-OrcaSlicer.py` and `powershell.exe -NoProfile -ExecutionPolicy Bypass -File Explorations/OrcaSlicer/Test-CombinedSetup.ps1` from the repository root. These check the shared Orca startup/configuration helper against mock MCP and disposable project copies; they are not live slicing scores.
+For maintenance checks without an installed slicer, run `py -3 Benchmarking/Test-OrcaSlicer.py`, `py -3 Benchmarking/Test-SlicerDiscovery.py`, and `powershell.exe -NoProfile -ExecutionPolicy Bypass -File Explorations/OrcaSlicer/Test-CombinedSetup.ps1` from the repository root. These check optional MCP configuration, slicer choice gates, Windows activation routing, CLI artifacts/failures and both launchers in disposable project copies; they are not live slicing scores. The discovery suite compiles the shipped native Windows activation interop without opening an app. `slicer.py list` inventories real installations without executing them.
 
 Run `py -3 Benchmarking/Test-PrinterLibrary.py` for printer catalog/preset transfer checks. The combined setup check also verifies that both launchers preserve an existing printer library.
+
+Run `py -3 Benchmarking/Test-PortablePackage.py` after reorganizing the template. It checks the source package against the shared launcher's runtime allowlist, rejects generated/account data, verifies self-contained Markdown links and context budgets, and parses JSON/TOML/Python without creating caches. Keep this maintenance check outside the distributed folder.
+
+Run `py -3 Benchmarking/Test-ApplicationSession.py` for deadline, process-identity, checkpoint/approval/idle gating, blocked graceful close and restart-handoff checks. It substitutes GUI process adapters and uses disposable projects/external runtime state: it never closes a real app, starts a watcher or waits 12 hours. Live Fusion/cloud saves, editable Orca project recovery, notification display and safe MCP reconnection need separate disposable-session validation.
 
 Run these in order in a **disposable Fusion project** using a fresh copy of the template for each version you compare. Start the chosen agent through `Fusion-Claude.bat` or `Fusion-Codex.bat`, open a new blank Fusion design before B1, and keep the same project and design through B6. Before B3, select one mounting-hole feature in Fusion's timeline. Before B7, close the agent and reopen it through the same batch file. Start timing when you send each prompt and stop when the agent finishes its answer; record the change in the credit or usage measure you have available. Keep the same measurement method across versions. Do not include your own preparation or review time.
 

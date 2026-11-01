@@ -1,32 +1,55 @@
-# Startup and connection
+# Slicer discovery, choice and startup
 
-## Supported backend
+## Choose the installed application
 
-Use [okets/OrcaMCP](https://github.com/okets/OrcaMCP/tree/mcp), an OrcaSlicer community build with an embedded MCP server. Install its Windows build from its [releases](https://github.com/okets/OrcaMCP/releases) outside the project folder. Keep an existing vendor slicer and its profiles intact. This helper does not download/install software or copy credentials.
-
-The embedded server starts with the application; a second bridge process is unnecessary for direct HTTP. The default endpoint is `http://127.0.0.1:13618/mcp`. The app can select a later port when one is occupied; confirm the intended window's port under Preferences > MCP and pass `--mcp-url`. Never silently select another window. Backend details: [OrcaMCP configuration](https://github.com/okets/OrcaMCP/blob/mcp/docs/setup/configuration.md).
-
-Python 3.11+ is needed by the helper; `py -3 --version` checks the Windows launcher. No third-party Python packages are required. From the project folder:
+Python 3.11+, Windows PowerShell and the standard library are sufficient. Normal Fusion startup needs neither Python nor a slicer. There is no version allowlist or special-build requirement for discovery/opening.
 
 ```powershell
-# Start/reuse the application and embedded MCP, then configure both clients.
-py -3 .agents/skills/orca-slice/scripts/start_orca.py --configure
-# Explicit installation path; alternatively set ORCAMCP_APP_PATH for this machine.
-py -3 .agents/skills/orca-slice/scripts/start_orca.py --configure --executable 'C:\Tools\OrcaMCP\orca-slicer.exe'
-# Inspect a running endpoint without launching or writing configuration.
-py -3 .agents/skills/orca-slice/scripts/start_orca.py --check-only
-# Prepare both clients without launching or asserting that MCP is available.
+py -3 .agents/skills/orca-slice/scripts/slicer.py list
+# Include an unregistered portable executable (also accepted through ORCA_SLICER_PATH).
+py -3 .agents/skills/orca-slice/scripts/slicer.py list --executable 'D:\Tools\My Orca\orca-slicer.exe'
+```
+
+Discovery reads standard/versioned install folders, PATH, per-user/machine installer registry and App Paths, Start menu/Desktop shortcuts, and current-user Windows Store/package manifests and Start app identities. It finds OrcaSlicer, Snapmaker Orca, OrcaMCP, other Orca-named builds and Bambu Studio; Bambu is labeled as its own application. It merges duplicate discoveries while keeping separate installations selectable. Arbitrary unregistered portable folders need an explicit executable; it does not scan every disk. Discovery warnings describe partial coverage. It does not execute candidates or contact a printer.
+
+Apply the slicer-choice policy in `FDM-Slicing.md`. In a noninteractive agent shell, run `list`, obtain the choice in chat, then pass its stable ID with `--select`. In an interactive terminal, `open` without `--select` offers a numbered choice, even with one candidate. Cancellation launches nothing. IDs are local selection handles, not portable preferences; rerun discovery if an app moves or is removed. Use source/path to distinguish otherwise identical names/versions.
+
+```powershell
+# After the user chooses, inspect only that executable's advertised CLI flags.
+py -3 .agents/skills/orca-slice/scripts/slicer.py probe --select ID
+# Prepare and slice headlessly per workflow.md; slice opens the result after success.
+# For a saved sliced result, open it in the chosen app for UI preview:
+py -3 .agents/skills/orca-slice/scripts/slicer.py open --select ID --file 'Print Jobs\job-sliced.3mf'
+```
+
+The agent handles exporting, file/profile preparation and headless slicing, then opens the completed local result for UI preview. Do not launch the GUI on the source model before a CLI-capable job. An explicit request merely to open a model can still use `open --file MODEL`. Ordinary installs receive the preview file as a separate process argument, with their normal profiles and data directory. Do not replace profiles or apply OrcaMCP-specific flags to a stock/vendor app. Store installs use their AUMID and Windows application/file activation contracts; the default file association is never used to guess the chosen slicer. If file activation is unsupported, an accessible manifest executable is tried. A failed activation with no accessible executable is a reported limit, not permission to select another app. Never take ownership of WindowsApps or change its permissions. [Microsoft application identities](https://learn.microsoft.com/en-us/windows/configuration/store/find-aumid), [file activation](https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-iapplicationactivationmanager-activateforfile).
+
+Activation/process success means an open request was accepted. For the final slice, enter the selected build's layer/toolpath Preview if it does not appear automatically, and verify that it displays this job's actual sliced output. Inspect dimensions, plate and profiles with available app/GUI tools under the access rule below. Opening an unsliced model or Prepare tab does not satisfy preview. Preserve unsaved work and any already-open slicer; headless processing does not require closing it. The helpers never kill existing slicers.
+
+## Non-disruptive UI access
+
+Apply `FDM-Slicing.md`'s non-disruptive UI policy. Prefer application APIs/MCP, passive screenshots/accessibility reads and background controls. Verify the tool's actual behavior: a window-scoped label does not prove its clicks/typing preserve cursor, focus, typing and clipboard. SendKeys/SendInput, blanket input blocking and foreground/cursor takeover are unsuitable routes even when slicer control was authorized.
+
+The current desktop/Store `open` helper requests application/file activation, and the target app may foreground itself; it does not guarantee focus isolation. Prefer a supported background/non-activating launch or an already-open window when that can be verified. If compliant opening/control is unavailable while the user is working, keep the headless artifact (`--no-open`), stop dependent UI interaction and report the exact pending preview/setup action. Never claim the visual check passed. Retain the selected app and completed work rather than retrying through pointer takeover.
+
+## Capability-based slicing
+
+Use the selected build's `probe` results and local help. The helper's `slice` operation uses only advertised core options and explicit profiles/prepared 3MF; see [workflow](workflow.md). Prefer CLI through completed toolpath export, then open the final result for required UI preview. Older/vendor builds may expose different CLI options or no usable CLI. Store GUI activation does not imply headless CLI access. If CLI or an indispensable profile/orientation setup step is unavailable headlessly, explain the specific limitation before opening the UI earlier; continue with available GUI automation or that build's verified MCP. If neither is available, automated slicing is unverified; report the exact limit. Do not silently switch slicers or describe a hidden/minimized GUI as headless. No helper can add an automation interface to every historical/future build. [Upstream CLI documentation](https://github.com/OrcaSlicer/OrcaSlicer/wiki/cli_mode).
+
+## Optional OrcaMCP connection
+
+Only use this route when the chosen app is an actual [OrcaMCP build](https://github.com/okets/OrcaMCP/tree/mcp), or an already-running selected window has a verified embedded MCP server. This embedded server runs inside the GUI app; starting it is not a headless substitute for CLI slicing. Prefer CLI for a headless job, then open the UI at preview. MCP is optional; do not require users of stock/Snapmaker/Store builds to install a different slicer.
+
+Confirm the selected window's endpoint in Preferences > MCP before attaching. The common default is `http://127.0.0.1:13618/mcp`; another window may use a different port. Do not automatically attach to whichever Orca server answers. The MCP helper cannot establish window ownership from server identity alone.
+
+```powershell
+# Only after confirming this endpoint belongs to the chosen app/window.
+py -3 .agents/skills/orca-slice/scripts/start_orca.py --configure --executable 'C:\Tools\OrcaMCP\orca-slicer.exe' --mcp-url 'http://127.0.0.1:13618/mcp'
+py -3 .agents/skills/orca-slice/scripts/start_orca.py --check-only --mcp-url 'http://127.0.0.1:13618/mcp'
+# Maintenance/config preparation only: no app or MCP verification.
 py -3 .agents/skills/orca-slice/scripts/start_orca.py --setup-only
 ```
 
-The helper defaults to its containing project, independent of the terminal's current directory. `--project-dir` selects another initialized project. It accepts only loopback HTTP endpoints. `--configure` merges the Orca entry into `.mcp.json`, `.codex/config.toml`, and Claude's `settings.json`, preserving Fusion and unrelated settings. A conflicting existing Orca entry is reported for deliberate resolution, not overwritten. Setup-only configuration is explicitly unverified.
+This legacy MCP helper verifies initialize/tools/list before `--configure` merges `orcaslicer` into `.mcp.json`, `.codex/config.toml` and `settings.json`. It preserves unrelated entries, explicit disables and conflicting configurations, restoring original bytes on write failure. Reconnect/restart the client's MCP session after first registration and inspect the actual tool schemas. Setup-only does not establish connectivity. Configuration changes cannot inject tools into a running chat.
 
-The app starts with an isolated data directory at `%LOCALAPPDATA%\AgenticFusion\OrcaMCP` (override using `--data-dir`) and agent startup dialogs skipped. Select/install the actual printer and material profiles before using it. Neither a profile nor a loaded model is chosen automatically. The helper leaves an application it started open if startup fails, so the user can inspect the window; it never kills an existing slicer.
-
-## Recovery
-
-- Missing executable: install OrcaMCP outside the project or supply its executable path. Auto-discovery looks in OrcaMCP installation folders and for `OrcaMCP.exe` on PATH; it does not guess that a stock/vendor executable has MCP.
-- Occupied endpoint or wrong server identity: inspect the selected application's port. Do not replace another service or attach to another plate implicitly.
-- Timeout: inspect the app, selected port, and profile/setup state, then retry once the cause is understood. An open TCP port alone is not success.
-- Configured server missing from the current chat: reconnect/restart MCP in the client or start a new agent session. Project trust still applies. Configuration changes do not inject tools into an already-running chat.
-- MaxEllis backend: it needs its separate stdio server, matching application, and token. This helper targets OrcaMCP's direct HTTP endpoint; do not point it at MaxEllis's REST port `13130`.
+If the endpoint is offline, this MCP-specific helper launches the explicitly selected executable (or discovers OrcaMCP only), with an isolated `%LOCALAPPDATA%\AgenticFusion\OrcaMCP` data directory (`--data-dir` overrides) and `ORCAMCP_SKIP_CLOUD_LOGIN=1`. This is separate from ordinary `slicer.py open`, which uses normal installed profiles. Select the real printer/material in that isolated instance. Leave a failed startup open for inspection. Only loopback HTTP `/mcp` endpoints are accepted; MaxEllis REST port `13130` needs its separate matching stdio server and token and is not this backend.

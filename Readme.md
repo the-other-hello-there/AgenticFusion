@@ -32,19 +32,36 @@ Setup preserves an older copy's launcher and instruction files. To fix Claude's 
 
 The launcher warns above the 40,000-character `Project.md` target. For Claude, it detects legacy full-file imports and stops before their combined text exceeds the observed 150,000-character instruction limit. It never rewrites existing context.
 
-### Optional OrcaSlicer startup
+### Optional slicer discovery and startup
 
-The shared `orca-slice` skill starts an installed [OrcaMCP community build](https://github.com/okets/OrcaMCP/tree/mcp) and its embedded MCP server. Install that build outside your project and use Python 3.11+ for the helper. No Snapmaker dependency is required. Ordinary Fusion startup remains independent of Python and Orca.
+The shared `orca-slice` skill discovers installed OrcaSlicer variants, including Snapmaker Orca and Windows Store packages, plus Bambu Studio. On each new slicing request, the agent asks which discovered app to use, prepares/slices headlessly when that build supports CLI, then automatically opens the completed result in that same app for required layer/toolpath preview. A slicer explicitly named in the request counts as the choice. No special MCP build is required. The helpers use Python 3.11+ and Windows PowerShell; ordinary Fusion startup remains independent of Python and any slicer.
 
-From a project copy, ask either agent to use `orca-slice`, or run:
+From a project copy, ask either agent to slice a model, or inventory installations yourself:
 
 ```powershell
-py -3 .agents/skills/orca-slice/scripts/start_orca.py --configure
+py -3 .agents/skills/orca-slice/scripts/slicer.py list
+# Interactive terminal: choose a slicer, slice a verified prepared project headlessly,
+# then open the sliced result for UI preview. The output path must be new.
+py -3 .agents/skills/orca-slice/scripts/slicer.py slice --input 'Print Jobs\prepared.3mf' --embedded-profiles --plate 1 --output 'Print Jobs\job-sliced.3mf'
 ```
 
-For a nonstandard installation add `--executable 'C:\Tools\OrcaMCP\orca-slicer.exe'`, or set `ORCAMCP_APP_PATH` on this machine. The helper starts/reuses the intended endpoint, verifies MCP initialization and tool discovery, and merges its `orcaslicer` entry into both clients' project settings. Reconnect/restart client MCP after the first registration. It does not install software or call slicing/printer tools. See the [startup reference](AgenticFusionTemplate/.agents/skills/orca-slice/references/startup.md) for setup-only mode, alternate ports, and recovery.
+Discovery reads installation folders, PATH, registry, shortcuts and current-user Store/package registrations without launching slicers. For an unregistered portable installation, add `--executable 'D:\Tools\Orca\orca-slicer.exe'`, or set `ORCA_SLICER_PATH` on this machine. In agent shells, the agent runs `list`, asks you, then passes the chosen ID using `--select`. Store apps use their application identity and file activation rather than a guessed WindowsApps path or default file association.
+
+Slicing prefers the selected build's verified CLI until preview. The core CLI helper records logs/hashes, verifies exported toolpaths, and only then opens results in the same app. Intermediate comparisons can use `--no-open`, followed by UI preview of the final result. If usable CLI or indispensable setup is unavailable headlessly, the agent explains that limitation before using the UI earlier. An embedded MCP server still runs inside a GUI app. Version-independent discovery is not a guarantee that every release has the same slicing APIs. See [startup](AgenticFusionTemplate/.agents/skills/orca-slice/references/startup.md) and [workflow](AgenticFusionTemplate/.agents/skills/orca-slice/references/workflow.md) for commands and optional OrcaMCP configuration. No software installation or printer operation is performed by these helpers.
 
 Keep slicing rules and preferences in [`FDM-Slicing.md`](AgenticFusionTemplate/FDM-Slicing.md), read only for FDM work. Keep verified geometry, selected job profiles, export provenance, and slice results in `Project.md`. Setup copies missing files and preserves a project's existing slicing preferences.
+
+The [slicing workflow, hierarchy and flowchart](AgenticFusionTemplate/.agents/skills/orca-slice/references/workflow.md) separates policy, job coordination, native settings, adaptive/smoothed layer height, support-interface materials, calibration and comparisons. Detailed procedures load on demand. Rules include directly stacked infill by toolpath geometry (gyroid does not qualify), user-declared-final gating for high infill and specific approval before a second support-interface material is applied. Researched sources and build-specific incompatibilities are linked from the relevant procedures.
+
+UI preview permits background window control only while normal computer operation continues uninterrupted: no cursor movement, focus takeover, global typing/clicks or clipboard replacement. The current activation helper cannot guarantee that a slicer will not foreground itself. When compliant access is unavailable, retain the headless result and report the exact pending visual check rather than take over the desktop.
+
+### Application housekeeping and resumable sessions
+
+Both agents use one [application-session procedure](AgenticFusionTemplate/.agents/skills/application-session/SKILL.md) and one Windows helper. Close unused task documents/windows after checking ownership and saved state. At verified milestones and before exposed usage limits run low, save the actual Fusion document/Orca editable project and record ordered pending tasks plus a restart checkpoint in `Project.md`. Either agent can resume from that record; agent-specific memory is not required.
+
+The Fusion launcher and ordinary slicer opening path register actual GUI PIDs/start times and start a hidden per-project deadline watcher. Runtime state stays in `%LOCALAPPDATA%\AgenticFusion\Sessions`, outside the migration package. Reattachment does not reset an application's clock. Prepare maintenance at 11.5 hours; at 12 hours stop new application work, save/verify and perform full cleanup while retaining live tasks, then ask whether the named apps can safely restart. After approval the helper requests a graceful close, relaunches the recorded application and requires PID/MCP/document/job verification before continuing. AI-agent processes and unrelated user software are excluded. `--setup-only` starts no watcher.
+
+The [detailed lifecycle guide](AgenticFusionTemplate/.agents/skills/application-session/references/lifecycle.md) distinguishes exported files, verified saves, cleanup and restart readiness. The watcher can queue maintenance and show a non-modal notice while the agent is idle, but it cannot invent semantic saves/task summaries when the agent is unavailable or quota-exhausted. Pending approval, an active operation or an unverifiable save may exceed the 12-hour deadline; no application is force-killed. Account telemetry is used when exposed by the client; missing telemetry remains unknown and milestone checkpoints provide the fallback. This is a cooperative maintenance deadline, not a guaranteed unattended hard cutoff.
 
 ### Portable printers and slicing skills
 
@@ -83,7 +100,7 @@ If the server is disconnected, check that Fusion is running, its MCP option is e
 | `.agents/skills/fusion-model/` | Shared modeling skill with task-specific Fusion API, assembly, timeline, sketch, feature, and verification references. |
 | `.agents/skills/fusion-print/` | Shared printing skill with references loaded by task: design rules, orientation, scan, and improvement. |
 | `.agents/skills/fusion-repair/` | Shared repair skill with references loaded by failure type. |
-| `.agents/skills/orca-slice/` | Shared Orca/MCP startup helper and slicing workflow; uses an installed OrcaMCP build. |
+| `.agents/skills/orca-slice/` | Shared slicer discovery/choice, desktop/Store opening, CLI slicing and optional OrcaMCP startup. |
 | `.agents/skills/printer-library/` | Printer definition, validation, selective export/import, and native preset export. |
 | `.agents/skills/fdm-calibrate/`, `.agents/skills/slice-compare/` | Measured calibration and controlled slicing comparison guidance. |
 | `.agents/.claude-plugin/plugin.json` | Lets the Claude launcher load those same skill files as a local plugin. Codex discovers them in `.agents/skills/`. |
@@ -98,7 +115,48 @@ Run [Run-Benchmark.bat](Benchmarking/Run-Benchmark.bat) to benchmark a fresh, di
 
 ## Maintenance and OrcaSlicer evidence
 
+The inner folder is the runtime migration package. Its shared launcher owns the explicit file allowlist; `py -3 Benchmarking/Test-PortablePackage.py` checks that the package contains exactly those files, has no generated/account data, and keeps its links self-contained. Maintenance tests, research/assessment notes, scratch copies and backups belong outside the inner folder. On-demand skill instructions, reference procedures and record templates are runtime resources and remain included.
+
+For an existing agent that needs the slicing instructions, relay:
+
+```text
+Apply and persist the following slicing instructions in this project. Keep one shared policy for Codex and Claude, a short coordinating skill, and on-demand procedures for settings, adaptive layer height and multimaterial interfaces. Include a decision flowchart; reuse existing printer-library, CAD printability, calibration and slice-comparison skills. Preserve verified design context and project-specific preferences.
+
+WORKFLOW
+- On each new slicing request, discover installed slicers, including ordinary OrcaSlicer, Snapmaker Orca and Windows Store installations, and ask which to use. Ask even with one result unless I already named an unambiguous installed slicer. Keep that choice through job follow-ups. Never silently substitute another slicer or require a special MCP build.
+- Prepare and slice headlessly through the chosen build's verified CLI when supported, then automatically open the completed slice in that same app for required layer/toolpath UI preview. Keep intermediate comparisons headless. Explain any indispensable earlier UI setup or unavailable capability; never claim an ignored setting or uninspected preview succeeded.
+- Slicer-window control is allowed only without interrupting normal computer use. Do not move my cursor, steal focus, send global keystrokes/clicks, overwrite my clipboard or block my input. Use APIs or non-disruptive background controls. If compliant access is unavailable, retain the artifacts and report the exact pending preview/setup action.
+
+SLICING RULES
+Depart from these defaults only for a specific conflict with verified design intent, and record the rule and reason. Software limitations must be reported rather than silently treated as exceptions. High infill still requires my explicit final-version designation, and a second support-interface material requires specific approval before application.
+
+1. Use concentric exposed top and bottom surfaces for my radial-compression objective, unless design intent conflicts; do not claim a universal strength advantage.
+2. Use a linear solid pattern on the layer immediately above each exposed bottom surface and immediately below each top surface. Keep exposed surfaces concentric; inspect local shells on stepped features too.
+3. Keep sparse infill between 10% and 70%. Use low for fit tests, medium for reasonably structural tests, and high only when I explicitly designate the version final. Working bands are low 10-20%, medium greater than 20% through 40%, and high greater than 40% through 70%; these are implementation conventions, not measured strength ratings.
+4. Prefer simple infill: lines stack directly above other lines at the same XY positions across layers, rather than forming laterally shifting ramps/overhangs. Verify actual toolpaths. Grid or aligned rectilinear can qualify; gyroid does not. Ordinary alternating rectilinear is not automatically equivalent. Use another pattern only when design intent justifies it, such as a need for more multidirectional infill behavior; the whole printed part remains anisotropic.
+5. Reserve one nominal wall for intentional flexibility, normally TPU. Otherwise use at least two walls, Alternate extra wall and Embedding wall into infill where supported. Treat those last two as distinct features and report missing capabilities.
+6. For geometry thinner than twice the nozzle diameter, enable Detect thin walls with Classic. With Arachne, use its thin-feature mechanism because the separate checkbox may be disabled. Verify the feature survives.
+7. Allow infill combination only for verified directly stacked patterns; check combined extrusion height and peak flow against actual nozzle/material limits.
+8. Enable independent support layer height when using supports. Verify effective behavior; report conflicts with towers or support styles in the selected build.
+9. Prefer tree supports for small/local features and normal supports for large overhang areas. Verify contact, removal and critical surfaces.
+10. Use Arachne when geometry narrower than the configured line width is critical to design intent; otherwise use Classic. Check feature filtering and dimensional preservation.
+11. Provide at least three actual solid layers in both top and bottom shells, including exposed surfaces, and satisfy functional thickness in mm. Sum actual layer heights when they vary.
+12. Apply adaptive/variable layer height with smoothing on every job, within calibrated bounds. Preserve critical Z geometry and first-layer behavior; a valid adaptive result may be uniform. Verify the saved schedule and actual toolpaths. Smoothing alone does not prove good interlayer adhesion. Explain any necessary earlier UI generation step without taking over my desktop.
+13. Prefer print by object for differently sized objects, printing small/short objects first. Use print by object for tall objects on a bed slinger. Verify complete head/gantry/bed sweep clearance and actual order; use separate plates/runs when necessary. Sequencing alone does not eliminate wobble.
+14. Recommend a compatible second support-interface material for supported critical geometry, but prepare the concrete material/settings/tradeoff plan and obtain my approval before applying it. Enable a prime tower and verify adequate purging in both directions. Follow current primary manufacturer and slicer guides matched to the hardware/material pair.
+
+For multimaterial interfaces, inspect weak bonding at swap heights, including contamination, priming, cooling, speed, contact and line-type classification. My suspected mechanism is a supported surface being classified as overhang/bridge rather than bottom solid, leading to inappropriate cooling or patterns; treat that as a hypothesis to verify. A better-contact/overlap solid-fill pattern or another user-selected slicer may help, but neither is a universal fix.
+
+Use verified printer/nozzle/material profiles and inherited settings. Evaluate load paths, orientation, continuous walls and shell thickness before increasing infill. Check roof support, infill crossings, peak volumetric flow and small-layer cooling. Preserve accepted CAD orientation and functional surfaces. Use measured calibration for physical strength, fit and adhesion; slice estimates are not measurements.
+
+Record source/profile/output provenance, effective settings, approvals, exceptions, warnings, estimates with units and unresolved checks in Project.md. Keep reusable rules in shared slicing policy. Slicing and preview do not authorize printer uploads, heating, motion or starting a print.
+```
+
+For legacy in-folder Claude configuration cleanup, generated `backups/`, `cache/`, `file-history/`, `session-env/`, `sessions/`, `shell-snapshots/`, `projects/`, `history.jsonl`, `.last-cleanup`, `.last-update-result.json`, `plugins/` and `skills/` are account/runtime data rather than migration-package source. Remove only identified obsolete backups (`backups/.claude.json.backup.*`), caches, past transcripts/tool results, file history, session environments and project paths from old locations after a recoverable copy. Preserve the current session, project/user files, credentials and installed plugins/skills. Do not read or copy `.credentials.json` or `.claude.json` into the template.
+
 The [OrcaSlicer feasibility study](Explorations/OrcaSlicer/README.md) retains backend comparisons, a local inventory probe, and the live slicing decision gates. Its setup check now exercises the shipped helper; superseded static configuration examples were removed. `Benchmarking/Test-OrcaSlicer.py` checks protocol handling, application launch behavior with a simulated process, configuration preservation, and rollback with a local mock server. Live slicing remains unverified.
+
+`py -3 Benchmarking/Test-SlicerDiscovery.py` checks selection before launching, duplicate discovery, Store activation routing, native interop compilation, CLI capability checks and verified-output/failure handling with simulated apps. `slicer.py list` found Windows Store OrcaSlicer, Snapmaker Orca and Bambu Studio on the assessment machine without opening them. Real GUI activation/import and slicing still need a chosen model and printer profiles.
 
 `py -3 Benchmarking/Test-PrinterLibrary.py` checks catalog transfer, native preset preservation, inheritance, conflicts and failed writes without an installed slicer. It does not verify a real printer or GUI preset import.
 

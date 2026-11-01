@@ -2,8 +2,8 @@
 
 Run `Fusion-Codex.bat` to initialize the project, start Fusion, wait for its local MCP server, and launch Codex. `Fusion-Claude.bat` opens the same project in Claude Code.
 
-Each session, read `Agentic-Fusion.md` and `Project.md`'s `Current state` for intent, parameters, decisions, document names, and open items. If absent, scan headings and read relevant sections only. Follow the shared decision path: `fusion-model` for modeling, `fusion-print` for CAD printability, `orca-slice` for Orca/MCP startup and slicing, `fusion-repair` for observed Fusion failures. Read `FDM-Slicing.md` only for FDM tasks. Load only relevant references.
+Each session, read `Agentic-Fusion.md` and follow its shared context-loading and skill decision path. Codex discovers the same physical `.agents/skills/` files that Claude loads as a plugin; load detailed references only for the current task.
 
 Fusion is the project-scoped HTTP MCP server `fusion` in `.codex/config.toml`. Use its read, execute, and update tools per `Agentic-Fusion.md`; inspect schemas because Claude tool IDs may differ. Keep Codex sign-in and runtime data in the normal user profile, never `CODEX_HOME` here. Record durable verified facts in `Project.md`, not session memory.
 
-For FDM work, route printer definition/migration to `printer-library` and `Printers.json`, measured tuning to `fdm-calibrate`, and slicing experiments to `slice-compare`. Keep those shared skills on demand.
+For `application-session` usage checks, use exposed Codex account-limit warnings/status when available. `/status` is an interactive client command, not a shell command or guaranteed programmatic meter; `codex login status` reports authentication rather than remaining allowance. Never inject commands into the user's UI. If usage telemetry is unavailable, mark it unknown and rely on milestone checkpoints. [Official status command](https://learn.chatgpt.com/docs/developer-commands?surface=cli).
