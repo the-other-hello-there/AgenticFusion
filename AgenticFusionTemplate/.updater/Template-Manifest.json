@@ -2,6 +2,7 @@
   "schema_version": 1,
   "repository": "the-other-hello-there/AgenticFusion",
   "hash_mode": "utf8-lf",
+  "branch": "feature/budgeted-independent-review",
   "files": [
     {
       "path": ".agents/.claude-plugin/plugin.json",
@@ -31,8 +32,10 @@
     },
     {
       "path": ".agents/scripts/review_guard.py",
-      "sha256": "1efbad9a4418bc69b58dd08202feda48e0923851b5950d210e4a857740a76486",
-      "previous_sha256": [],
+      "sha256": "93563db2e635da8b7bd5ec8e08da695c5cf692e25bd161b60fe160303867700a",
+      "previous_sha256": [
+        "1efbad9a4418bc69b58dd08202feda48e0923851b5950d210e4a857740a76486"
+      ],
       "policy": "managed"
     },
     {
@@ -317,9 +320,10 @@
     },
     {
       "path": ".agents/skills/project-resources/SKILL.md",
-      "sha256": "e4de9fbecfe6e1896c508abbc6da00260221699468bd0103784d22129d53794c",
+      "sha256": "cafffd8ed479588fe8053caf29a8bbb9b80d5077f33c014b852db7157b83ca75",
       "previous_sha256": [
-        "43b3d8ee52ddbf29643a33573370a60c4764ac3c88bd594d60d4f043b34cb268"
+        "43b3d8ee52ddbf29643a33573370a60c4764ac3c88bd594d60d4f043b34cb268",
+        "e4de9fbecfe6e1896c508abbc6da00260221699468bd0103784d22129d53794c"
       ],
       "policy": "managed"
     },
@@ -373,16 +377,18 @@
     },
     {
       "path": ".updater/README.md",
-      "sha256": "9e9678d48f4f7b2bd4f9b4db222a6ef9d6deaeb7f8a5fe8bbff569c2c9ec7422",
+      "sha256": "9b9af9a821e426e6f6ef9001edd236d24afdca2f2ee2ece52ad2503dd4402fd7",
       "previous_sha256": [
-        "5cd1da2bb663529defa91f08f23e6122e0f6eede05feff03608be7098e1e6abf"
+        "5cd1da2bb663529defa91f08f23e6122e0f6eede05feff03608be7098e1e6abf",
+        "9e9678d48f4f7b2bd4f9b4db222a6ef9d6deaeb7f8a5fe8bbff569c2c9ec7422"
       ],
       "policy": "managed"
     },
     {
       "path": ".updater/update_template.py",
-      "sha256": "39446fefaa8ec4ededd9f26b37c40ee8d052af0c97f450bf851da014f6dceab5",
+      "sha256": "6f64bdf6aa1e0fadcaa29916b46b2ad4c8f829bd1b847c9124a20b0423c0c02d",
       "previous_sha256": [
+        "39446fefaa8ec4ededd9f26b37c40ee8d052af0c97f450bf851da014f6dceab5",
         "a1b96e9eaa3b8309ce67b897f609650eceb1049504e0cb17e37d8c8a72ae71cb",
         "d9e65accb0cd8882a36d2de93816c4fe6f6cbde048570453ab6f2138e9de0d00"
       ],
@@ -408,13 +414,14 @@
     },
     {
       "path": "Agentic-Fusion.md",
-      "sha256": "8a845ecad4cbc8154d4c22ef3580ab7e9f530025f223903e809964354f8c1f88",
+      "sha256": "0518bd2685a1adef6452a64f1f265531a9471c82d69b46dac57950eccdda3a14",
       "previous_sha256": [
         "467e3e659ecfb5f35764652540294c114672685133bc617a0177a523be66ecab",
         "47fc8c1d24322fa4ff87071ea6ebd1670a36b2a9de1c82c22fe9bf9883caf2c7",
         "5a2543cee5d7f245ce150414f60028bb2f490e667fb4c1c18980abe94f030425",
         "5aa0bd1d1366abb04cf13d84c34eefdc7c140a0ecad1aa249d3f530f26139b09",
         "5c5426fe37dde87d09592fb8de973baa53d057ee23667c72283fbb1e2e13aaef",
+        "8a845ecad4cbc8154d4c22ef3580ab7e9f530025f223903e809964354f8c1f88",
         "8e7602111e51e7085a84ab8d4682b74911de4be2624e4b25e0ffceb60f1579f8",
         "9ef32f227795bc7bdb13244134089686e8ef14599a63ec4af68f3ed176db396d",
         "d11bb9c217e07899f86db843e606fb2369f561297949f9e326ce615e21b33672",
@@ -465,8 +472,9 @@
     },
     {
       "path": "Fusion-Claude.bat",
-      "sha256": "14d60ca160c830a4a7dbf1dc190c6819be8bf705eb69be6c720707d9aa0773b8",
+      "sha256": "30f206d6a0668ca3a8a02a428e88b04e5b6b19c51b02bfb1e7d09bad1f7212b6",
       "previous_sha256": [
+        "14d60ca160c830a4a7dbf1dc190c6819be8bf705eb69be6c720707d9aa0773b8",
         "28b9ba862f1bc999547c0a72137ceecf0fb5932a8d65d5f4c27da4544492bb77",
         "44ee7e4e31d78e55fd903183118fea41580b3619766d074841eb762400f88f75",
         "45dd541bd9dc1e49ea35d7b27fbddcd89cc08058733de13f9f1a029ec5035317",
@@ -493,9 +501,10 @@
     },
     {
       "path": "Independent-Review.md",
-      "sha256": "7e7a7ed631cd5007ca1fcd62972b29fffee82e77ba4a153786c4c97bc0ef29c9",
+      "sha256": "4e11ce6ffa30da55e8c8794013255be690aa8da3ffe25223575a3fe6c109d1c4",
       "previous_sha256": [
-        "3bff946fe09482c4d797dd09393ef8a6cc8fb5e9309457ae9f881cbfcbc0a227"
+        "3bff946fe09482c4d797dd09393ef8a6cc8fb5e9309457ae9f881cbfcbc0a227",
+        "7e7a7ed631cd5007ca1fcd62972b29fffee82e77ba4a153786c4c97bc0ef29c9"
       ],
       "policy": "managed"
     },
@@ -507,8 +516,9 @@
     },
     {
       "path": "Review-Policy.json",
-      "sha256": "a5110ef0b24f15d5f48577abc813f6447809479d99a1d015811faa60a3ed46f5",
+      "sha256": "05c0dccb51bd0256429bfd754098587fd0c243c8f51268c9cb4cd30a957606e6",
       "previous_sha256": [
+        "a5110ef0b24f15d5f48577abc813f6447809479d99a1d015811faa60a3ed46f5",
         "e41f1cfa5bbad6416a5bd236227e7a98f277054562d35df84977fa297ef9c6db"
       ],
       "policy": "preserve"

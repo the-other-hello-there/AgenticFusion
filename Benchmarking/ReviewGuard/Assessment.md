@@ -1,12 +1,12 @@
 # Independent-review parity assessment
 
-Assessment date: 2026-10-30. Branch: `feature/budgeted-independent-review`.
+Assessment date: 2026-11-01. Branch: `feature/budgeted-independent-review`.
 
 ## Current result
 
 Both native adapters now feed one runtime, `.agents/scripts/review_guard.py`, and use the same default external-meter policy. The common supervisor owns boundary scheduling, authority, cost accounting, revision limits and delivery. Configuration and native billing capabilities are described once in the [operator guide](../../AgenticFusionTemplate/Independent-Review.md).
 
-**34 review tests and the existing 24 slicing/printer tests pass.** Ten end-to-end parity scenarios run independent subprocesses emitting Codex-shaped and Claude-shaped events. Each pair must match on outcome, candidate delivery, measured/reserved ledger, review sequence, revision count and completed-tool count. These are deterministic fixtures; they do not measure live AI accuracy.
+**40 review tests pass.** Ten end-to-end parity scenarios run independent subprocesses emitting Codex-shaped and Claude-shaped events. Each pair must match on outcome, candidate delivery, measured/reserved ledger, review sequence, revision count and completed-tool count. New checks cover default-off project preferences, task eligibility, the exact 12.5% default and explicit user caps, CLI project/task budget precedence, Project.md indexing and scope/budget preservation across resume. These are deterministic fixtures; they do not measure live AI accuracy. The separate launcher harness covers both agents' scoped overrides, disabled/excluded tasks and ordinary startup without a task request.
 
 ## Differences corrected
 
@@ -15,6 +15,8 @@ Both native adapters now feed one runtime, `.agents/scripts/review_guard.py`, an
 - External metering is authoritative for both agents. Claude's native USD field is optional in that mode and is not charged a second time. Generic bridge usage follows the same rule.
 - The shared external-meter default requires a meter for both agents and supports a consistent declared USD or credit unit. Missing configuration holds both before starting the primary.
 - Native runtime metering is an explicit option. Claude USD is supported; unsupported runtime/unit combinations hold before model launch. Codex token counts are not converted into invented costs.
+- Agentic verification requires the user's saved project opt-in and an allowed task scope. Missing, disabled and uncovered preferences stop before either model runs; ordinary validation remains available.
+- A saved project budget or explicit task override replaces the former fixed ratio. The omitted default is exactly 12.5%; active scope/budget is part of protected authority so resume cannot silently increase the cap or reset charges.
 - Unknown execution effects require observation for either adapter; native terminal errors block delivery in both.
 
 ## Parity cases
@@ -38,7 +40,7 @@ Other tests retain requirement reinterpretation, real operator exceptions, conte
 
 The tests make **zero remote model calls**; actual test reviewer-model charges are **$0**. Development-chat consumption is not available to this benchmark. All fixture USD/credit values are simulated, including the 2% compliant-case ratio and 1.5% automatic-revision ratio. No live AI detection rate or paid-model cap compliance is claimed.
 
-The local version/help probe established Codex CLI `0.164.0` and Claude Code `2.1.312` with JSON-stream flags. Claude advertises `--max-budget-usd`; Codex does not expose a comparable exec flag in the inspected help. A strict whole-review/in-flight ceiling is still unverified for both native CLIs. Paid activation remains held until a trusted bounded reviewer is configured. The default now also requires the same external meter for both.
+The local version/help probe established Codex CLI `0.166.0` and Claude Code `2.1.316` with JSON-stream flags. Claude advertises `--max-budget-usd`; Codex does not expose a comparable exec flag in the inspected help. A strict whole-review/in-flight ceiling is still unverified for both native CLIs. Paid activation remains held until a trusted bounded reviewer is configured. The default also requires the same external meter for both.
 
 Native shapes are based on the [Codex CLI reference](https://learn.chatgpt.com/docs/cli/reference) and [Claude headless documentation](https://code.claude.com/docs/en/headless). Parser parity was tested with native-shaped fixtures, not authenticated paid sessions. See the operator guide for the unchanged OS-isolation, external-state, side-effect and charge-contract limitations.
 
@@ -61,4 +63,4 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File Benchmarking/Test-Combin
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File Benchmarking/ReviewGuard/Test-LauncherDispatch.ps1
 ```
 
-The setup and dispatch checks use fresh copies, preserve existing context/policies, and verify held exit code 2 for both launchers without a model invocation. The dispatch harness stubs Fusion discovery/connectivity. Runtime state stays outside the distributable folder. Git history remains intact.
+The setup and dispatch checks use fresh copies and preserve existing context/policies/preferences. Both launchers propagate held exit code 2 for guarded preflight or missing project/task opt-in, without a model invocation. Ordinary startup uses a fixture agent and stays unguarded whether saved verification is enabled or disabled, until a scoped task is requested. The dispatch harness stubs Fusion discovery/connectivity. Runtime state stays outside the distributable folder. Git history remains intact.

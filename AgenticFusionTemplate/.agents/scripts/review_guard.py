@@ -22,6 +22,9 @@ import uuid
 
 sys.dont_write_bytecode = True
 
+PROJECT_VERIFICATION = Path('Project/Context/Agentic-Verification.json')
+DEFAULT_BUDGET_PERCENT = '12.5'
+
 class Hold(RuntimeError):
     pass
 
@@ -48,12 +51,85 @@ def write_json(path, value):
     temporary.replace(path)
 
 
+def budget_percent(value):
+    number = amount(value)
+    if number <= 0:
+        raise Hold('Verification budget percent must be positive.')
+    return str(number)
+
+
+def task_scopes(values):
+    if not isinstance(values, list) or not all(isinstance(value, str) and re.fullmatch('[a-z][a-z0-9-]{0,62}', value) for value in values):
+        raise Hold('Task scopes must be a list of lowercase names such as modeling, slicing or all.')
+    if 'all' in values and len(values) != 1:
+        raise Hold('Use all alone, or list the specific task scopes.')
+    return sorted(set(values))
+
+
+def preference_path(workspace):
+    workspace = Path(workspace).resolve(strict=True)
+    cursor = workspace
+    for part in PROJECT_VERIFICATION.parts:
+        cursor /= part
+        if cursor.is_symlink() or (cursor.exists() and getattr(cursor.lstat(), 'st_reparse_tag', 0) in {0xA0000003, 0xA000000C}):
+            raise Hold('Verification preferences must stay within the project, without filesystem links.')
+    return cursor
+
+
+def project_preferences(workspace):
+    path = preference_path(workspace)
+    value = json.loads(path.read_text(encoding='utf-8-sig')) if path.exists() else {
+        'schema_version': 1, 'enabled': False, 'tasks': [], 'budget_percent': DEFAULT_BUDGET_PERCENT}
+    if not isinstance(value, dict) or value.get('schema_version') != 1 or type(value.get('enabled')) is not bool:
+        raise Hold('Invalid project verification preferences.')
+    tasks = task_scopes(value.get('tasks'))
+    if value['enabled'] and not tasks:
+        raise Hold('Enabled verification needs explicit task scopes.')
+    return dict(value, tasks=tasks, budget_percent=budget_percent(value.get('budget_percent', DEFAULT_BUDGET_PERCENT)))
+
+
+def configure_project(workspace, enabled, tasks=None, percent=None):
+    """Operator/user-requested preference change, never inferred by a primary agent."""
+    workspace = Path(workspace).resolve(strict=True)
+    previous = project_preferences(workspace)
+    preferences = dict(previous, enabled=enabled,
+                       tasks=task_scopes(tasks) if tasks is not None else previous['tasks'],
+                       budget_percent=budget_percent(percent) if percent is not None else previous['budget_percent'])
+    if enabled and not preferences['tasks']:
+        raise Hold('Choose --tasks explicitly before enabling project verification.')
+    helper = Path(__file__).with_name('project-resources.ps1')
+    if not helper.is_file():
+        raise Hold('The shared project-resources helper is required to index preferences from Project.md.')
+    path = preference_path(workspace)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_json(path, preferences)
+    result = subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+                             '-File', str(helper), '-Action', 'Sync', '-ProjectDir', str(workspace / '.')],
+                            capture_output=True, text=True, timeout=30,
+                            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+    if result.returncode:
+        raise Hold('Verification preferences saved, but Project.md indexing needs attention: ' + result.stderr.strip())
+    return preferences
+
+
+def verification_selection(workspace, scope, percent=None):
+    preferences = project_preferences(workspace)
+    if not preferences['enabled']:
+        raise Hold('Agentic verification is not enabled for this project. An explicit user opt-in is required.')
+    if scope is None or task_scopes([scope]) != [scope]:
+        raise Hold('Supply the user-authorized task type with --task-scope.')
+    if scope not in preferences['tasks'] and 'all' not in preferences['tasks']:
+        raise Hold(f'Agentic verification is not enabled for task scope {scope}.')
+    return {'task_scope': scope, 'budget_percent': budget_percent(percent) if percent is not None else preferences['budget_percent']}
+
+
 def validate_policy(policy):
     if policy.get("schema_version") != 1 or policy.get("unit") not in {"credits", "usd"}:
         raise Hold("Policy needs schema_version 1 and a comparable credits or usd unit.")
-    ratio = amount(policy.get("max_review_ratio"))
-    if not 0 < ratio < Decimal("0.125"):
-        raise Hold("The review ratio must be positive and strictly below 0.125.")
+    ratio = amount(policy.get("max_review_ratio", '0.125'))
+    if ratio <= 0:
+        raise Hold("The review ratio must be positive.")
+    policy['max_review_ratio'] = str(ratio)
     if amount(policy.get("review_call_ceiling")) <= 0:
         raise Hold("A positive per-call ceiling is required.")
     if policy.get("primary_meter_mode", "external") not in {"external", "runtime"}:
@@ -175,17 +251,19 @@ def command_call(command, payload, cwd, timeout):
 
 
 class Engine:
-    def __init__(self, folder, policy, requirements, exceptions=()):
+    def __init__(self, folder, policy, requirements, exceptions=(), verification=None):
         self.folder = Path(folder)
         self.folder.mkdir(parents=True, exist_ok=True)
         self.policy = validate_policy(policy)
         self.authority = {"original_user_requirements": requirements, "user_exceptions": list(exceptions)}
+        if verification is not None:
+            self.authority['verification'] = dict(verification)
         self.task_hash = digest(self.authority)
         task_path = self.folder / "authority.json"
         if task_path.exists() and json.loads(task_path.read_text(encoding="utf-8")) != self.authority:
-            raise Hold("Original requirements changed across context recovery.")
+            raise Hold("Original requirements changed or verification scope/budget changed across context recovery.")
         write_json(task_path, self.authority)
-        self.ledger = Ledger(folder, policy, self.task_hash)
+        self.ledger = Ledger(folder, self.policy, self.task_hash)
         self.audit = self.folder / "events.jsonl"
 
     def event(self, kind, **data):
@@ -467,14 +545,14 @@ def authorize_exception(workspace, state, statement_file):
 
 
 class Supervisor:
-    def __init__(self, workspace, state, policy, requirements, exceptions=(), agent="codex", resume=False):
+    def __init__(self, workspace, state, policy, requirements, exceptions=(), agent="codex", resume=False, verification=None):
         self.workspace = Path(workspace).resolve(strict=True)
         self.state = outside(state, self.workspace)
         self.state.mkdir(parents=True, exist_ok=True)
         if (self.state / "baseline.json").exists() and not resume:
             raise Hold("Existing controller state requires explicit --resume; do not reset review spending.")
         self.agent = agent
-        self.engine = Engine(self.state, policy, requirements, exceptions)
+        self.engine = Engine(self.state, policy, requirements, exceptions, verification)
         self.meter_mode = policy.get("primary_meter_mode", "external")
         baseline_file = self.state / "baseline.json"
         if baseline_file.exists():
@@ -668,6 +746,7 @@ class Supervisor:
 
     def report(self, status, reason=None):
         result = {"status": status, "reason": reason, "accounting": self.engine.ledger.report(),
+                  "verification": self.engine.authority.get('verification'),
                   "primary_meter_mode": self.meter_mode,
                   "implementation_reviews": len(self.boundary_results),
                   "deferred_or_held_boundaries": self.deferred,
@@ -686,6 +765,15 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("probe")
+    preferences = commands.add_parser('preferences')
+    preferences.add_argument('--workspace', type=Path, default=Path(__file__).resolve().parents[2])
+    configure = commands.add_parser('configure')
+    configure.add_argument('--workspace', type=Path, default=Path(__file__).resolve().parents[2])
+    mode = configure.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--enable', action='store_true')
+    mode.add_argument('--disable', action='store_true')
+    configure.add_argument('--tasks', nargs='+', help='User-selected task types, or all')
+    configure.add_argument('--budget-percent', help='Reviewer cap as a percent of measured primary spending; default 12.5')
     authorize = commands.add_parser("authorize-exception")
     authorize.add_argument("--workspace", type=Path, required=True)
     authorize.add_argument("--state-dir", type=Path, required=True)
@@ -698,10 +786,20 @@ def main(argv=None):
     run.add_argument("--user-exceptions", type=Path)
     run.add_argument("--state-dir", type=Path)
     run.add_argument("--resume", action="store_true")
+    run.add_argument('--task-scope', help='Task type matched against the saved project opt-in')
+    run.add_argument('--budget-percent', help='Explicit user override for this task; otherwise use saved project budget')
     args = parser.parse_args(argv)
     if args.command == "probe":
         print(json.dumps(probe(), indent=2))
         return 0
+    if args.command in {'configure', 'preferences'}:
+        try:
+            value = configure_project(args.workspace, args.enable, args.tasks, args.budget_percent) if args.command == 'configure' else project_preferences(args.workspace)
+            print(json.dumps(value, indent=2))
+            return 0
+        except (Hold, OSError, ValueError, TypeError, subprocess.TimeoutExpired) as exc:
+            print(f'VERIFICATION PREFERENCES: {exc}', file=sys.stderr)
+            return 2
     if args.command == "authorize-exception":
         try:
             print(json.dumps(authorize_exception(args.workspace, args.state_dir, args.statement_file)))
@@ -712,11 +810,14 @@ def main(argv=None):
     supervisor = None
     try:
         workspace = args.workspace.resolve(strict=True)
+        verification = verification_selection(workspace, args.task_scope, args.budget_percent)
         outside(args.policy, workspace)
         outside(args.requirements, workspace)
         if args.user_exceptions:
             outside(args.user_exceptions, workspace)
-        policy = validate_policy(json.loads(args.policy.read_text(encoding="utf-8-sig")))
+        policy = json.loads(args.policy.read_text(encoding="utf-8-sig"))
+        policy['max_review_ratio'] = str(amount(verification['budget_percent']) / 100)
+        policy = validate_policy(policy)
         requirements = args.requirements.read_text(encoding="utf-8-sig")
         if not requirements.strip():
             raise Hold("Original user requirements cannot be empty.")
@@ -726,7 +827,7 @@ def main(argv=None):
         if not isinstance(exceptions, list) or not all(isinstance(item, str) and item for item in exceptions):
             raise Hold("User exceptions must be an operator-supplied string array.")
         state = args.state_dir or Path(tempfile.mkdtemp(prefix="AgenticFusion-review-"))
-        supervisor = Supervisor(args.workspace, state, policy, requirements, exceptions, args.agent, args.resume)
+        supervisor = Supervisor(args.workspace, state, policy, requirements, exceptions, args.agent, args.resume, verification)
         answer = supervisor.run()
         supervisor.report("cleared")
         print(answer)

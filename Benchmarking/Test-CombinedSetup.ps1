@@ -43,6 +43,9 @@ try {
         $reviewPolicy = Get-Content -LiteralPath (Join-Path $templateDir 'Review-Policy.json') -Raw | ConvertFrom-Json
         $reviewPolicy.max_review_ratio = '0.12'
         [System.IO.File]::WriteAllText($reviewPolicyFile, ($reviewPolicy | ConvertTo-Json -Depth 20), $utf8)
+        $verificationFile = Join-Path $project 'Project\Context\Agentic-Verification.json'
+        New-Item -ItemType Directory -Path (Split-Path -Parent $verificationFile) -Force | Out-Null
+        [IO.File]::WriteAllText($verificationFile, '{"schema_version":1,"enabled":true,"tasks":["modeling"],"budget_percent":"20"}', $utf8)
         foreach ($name in @('AGENTS.md', 'CLAUDE.md', '.agents\skills\fusion-model\references\mcp.md')) {
             $file = Join-Path $project $name
             New-Item -ItemType Directory -Path (Split-Path -Parent $file) -Force | Out-Null
@@ -51,7 +54,7 @@ try {
         $otherLauncher = if ($firstLauncher -eq 'Fusion-Claude.bat') { 'Fusion-Codex.bat' } else { 'Fusion-Claude.bat' }
         $localLauncher = [System.IO.File]::ReadAllText((Join-Path $templateDir $otherLauncher)).Replace('@echo off', "@echo off`r`nrem Preserve this project's launcher edits.")
         [System.IO.File]::WriteAllText((Join-Path $project $otherLauncher), $localLauncher, $utf8)
-        $expected = @{}
+        $expected = @{ 'Project\Context\Agentic-Verification.json' = (Get-FileHash -LiteralPath $verificationFile).Hash }
         foreach ($sourceFile in Get-ChildItem -LiteralPath $templateDir -File -Recurse -Force) {
             $name = $sourceFile.FullName.Substring($templateDir.Length + 1)
             $target = Join-Path $project $name

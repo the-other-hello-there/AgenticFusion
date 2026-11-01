@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.dont_write_bytecode = True
 
@@ -79,7 +80,9 @@ if __name__ == "__main__" and sys.argv[1:2] == ["--fixture"]:
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = ROOT / "AgenticFusionTemplate/.agents/scripts/review_guard.py"
 sys.path.insert(0, str(RUNTIME.parent))
-from review_guard import Engine, Hold, amount, snapshot, packet_evidence, normalize_events, Supervisor, authorize_exception, probe
+from review_guard import (Engine, Hold, amount, snapshot, packet_evidence, normalize_events, Supervisor,
+                          authorize_exception, probe, configure_project, project_preferences,
+                          verification_selection, validate_policy, PROJECT_VERIFICATION, main)
 
 PARITY_RESULTS = []
 
@@ -109,6 +112,12 @@ class ReviewChecks(unittest.TestCase):
         self.supervisor.engine.ledger.record_primary({"amount": amount_value, "unit": "usd",
             "quality": "provider_reported", "measurement_id": "test-main"})
         return self.supervisor.engine
+
+    def preferences(self, enabled=True, tasks=None, percent='12.5'):
+        path = self.workspace / PROJECT_VERIFICATION
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({'schema_version': 1, 'enabled': enabled,
+                                   'tasks': tasks or ['modeling'], 'budget_percent': percent}))
 
     def test_requirement_reinterpretation_requires_revision(self):
         result = self.funded().review(self.evidence(4), "delivery")
@@ -178,8 +187,8 @@ class ReviewChecks(unittest.TestCase):
                 engine.review(ev, "delivery", call=lambda payload: (_ for _ in ()).throw(Hold("network failure")))
             except Hold:
                 pass
-        self.assertLessEqual(engine.ledger.spent, Decimal("0.1") * Decimal("0.124"))
-        self.assertEqual(engine.ledger.data["reviews"][0]["reserved"], "0.0124")
+        self.assertLessEqual(engine.ledger.spent, Decimal("0.1") * Decimal("0.125"))
+        self.assertEqual(engine.ledger.data["reviews"][0]["reserved"], "0.0125")
 
     def test_adapter_overrun_is_reported_and_blocks_approval(self):
         engine = self.funded()
@@ -254,6 +263,7 @@ class ReviewChecks(unittest.TestCase):
             supervisor.run()
 
     def test_real_cli_withholds_rejected_candidate_and_reports_held(self):
+        self.preferences()
         self.policy["primary_command"][-1] = "fabricated_approval"
         requirements = self.root / "task.txt"
         requirements.write_text("Write exactly eight entries.")
@@ -261,13 +271,120 @@ class ReviewChecks(unittest.TestCase):
         policy_file.write_text(json.dumps(self.policy))
         result = subprocess.run([sys.executable, str(RUNTIME), "run", "--agent", "custom",
                                  "--workspace", str(self.workspace), "--requirements", str(requirements),
-                                 "--policy", str(policy_file), "--state-dir", str(self.root / "cli-state")],
+                                 "--policy", str(policy_file), "--state-dir", str(self.root / "cli-state"),
+                                 '--task-scope', 'modeling'],
                                 capture_output=True, text=True, timeout=15)
         self.assertEqual(result.returncode, 2)
         self.assertEqual(result.stdout, "")
         report = json.loads((self.root / "cli-state/report.json").read_text())
         self.assertEqual(report["status"], "held")
         self.assertLess(Decimal(report["accounting"]["review_ratio"]), Decimal("0.125"))
+
+    def test_absent_disabled_excluded_or_unspecified_scope_never_launches_a_supervisor(self):
+        arguments = ['run', '--agent', 'custom', '--workspace', str(self.workspace),
+                     '--requirements', str(self.root / 'task.txt'), '--policy', str(self.root / 'policy.json')]
+        for mode in ['absent', 'disabled', 'excluded', 'missing-scope']:
+            if mode != 'absent':
+                self.preferences(enabled=mode != 'disabled', tasks=['slicing'] if mode == 'excluded' else ['modeling'])
+            scope = [] if mode == 'missing-scope' else ['--task-scope', 'modeling']
+            with self.subTest(mode=mode), mock.patch('review_guard.Supervisor') as controller, mock.patch('sys.stdout', new=io.StringIO()) as output, mock.patch('sys.stderr', new=io.StringIO()):
+                self.assertEqual(main(arguments + scope), 2)
+                controller.assert_not_called()
+                self.assertEqual(output.getvalue(), '')
+        self.assertFalse((self.root / 'task.txt').exists())
+
+    def test_default_and_user_selected_caps_reserve_exactly_the_available_budget(self):
+        for ratio in ['0.125', '0.25']:
+            policy = dict(self.policy, review_call_ceiling='1')
+            policy.pop('max_review_ratio')
+            if ratio != '0.125':
+                policy['max_review_ratio'] = ratio
+            engine = Engine(self.root / ('cap-' + ratio), policy, 'requirements')
+            engine.ledger.record_primary({'amount': '1', 'unit': 'usd', 'quality': 'provider_reported', 'measurement_id': 'cost'})
+            _, ceiling = engine.ledger.reserve('fingerprint', 'delivery')
+            self.assertEqual(ceiling, Decimal(ratio))
+            with self.assertRaisesRegex(Hold, 'budget'):
+                engine.ledger.reserve('another fingerprint', 'delivery')
+
+    def test_cli_uses_saved_budget_and_explicit_task_override(self):
+        requirements = self.root / 'task-budget.txt'
+        requirements.write_text('Write exactly eight entries.')
+        policy_file = self.root / 'policy-budget.json'
+        policy_file.write_text(json.dumps(self.policy))
+        for index, (saved, override, effective) in enumerate([('12.5', None, '0.125'), ('20', None, '0.2'), ('20', '25', '0.25')]):
+            for output in ('answer.txt', 'unfamiliar_api.py'):
+                (self.workspace / output).unlink(missing_ok=True)
+            self.preferences(percent=saved)
+            state = self.root / f'budget-state-{index}'
+            args = [sys.executable, str(RUNTIME), 'run', '--agent', 'custom', '--workspace', str(self.workspace),
+                    '--requirements', str(requirements), '--policy', str(policy_file), '--state-dir', str(state), '--task-scope', 'modeling']
+            if override is not None:
+                args += ['--budget-percent', override]
+            result = subprocess.run(args, capture_output=True, text=True, timeout=20)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            report = json.loads((state / 'report.json').read_text())
+            self.assertEqual(Decimal(report['accounting']['ratio_limit']), Decimal(effective))
+            self.assertEqual(report['verification']['task_scope'], 'modeling')
+            self.assertEqual(report['verification']['budget_percent'], override or saved)
+            self.assertEqual(project_preferences(self.workspace)['budget_percent'], saved)
+
+    def test_active_scope_and_budget_are_frozen_across_resume_and_user_exceptions(self):
+        verification = {'task_scope': 'modeling', 'budget_percent': '12.5'}
+        state = self.root / 'frozen-verification'
+        engine = Engine(state, self.policy, 'requirements', verification=verification)
+        engine.ledger.record_primary({'amount': '1', 'unit': 'usd', 'quality': 'provider_reported', 'measurement_id': 'cost'})
+        engine.ledger.reserve('fingerprint', 'implementation')
+        spent = engine.ledger.spent
+        for change in [{'task_scope': 'slicing', 'budget_percent': '12.5'}, {'task_scope': 'modeling', 'budget_percent': '25'}]:
+            with self.assertRaisesRegex(Hold, 'scope/budget changed'):
+                Engine(state, self.policy, 'requirements', verification=change)
+        statement = self.root / 'exception-statement.txt'
+        statement.write_text('Allow a revised result.')
+        authorize_exception(self.workspace, state, statement)
+        recovered = Engine(state, self.policy, 'requirements', ['Allow a revised result.'], verification=verification)
+        self.assertEqual(recovered.ledger.spent, spent)
+        self.assertEqual(recovered.authority['verification'], verification)
+
+    def test_project_preferences_preserve_choices_across_agents_and_index_existing_context(self):
+        original = '# Project\r\nVerified dimensions: 42 mm.  \r\n'.encode('utf-16')
+        (self.workspace / 'Project.md').write_bytes(original)
+        enabled = configure_project(self.workspace, True, ['modeling', 'slicing'], '20')
+        self.assertEqual(enabled['budget_percent'], '20')
+        context = (self.workspace / 'Project.md').read_bytes()
+        self.assertTrue(context.startswith(original))
+        self.assertIn('Project/Context/Agentic-Verification.json', context.decode('utf-16'))
+        for agent in ['codex', 'claude']:
+            self.assertEqual(verification_selection(self.workspace, 'modeling')['budget_percent'], '20', agent)
+        disabled = configure_project(self.workspace, False)
+        self.assertFalse(disabled['enabled'])
+        self.assertEqual(disabled['tasks'], ['modeling', 'slicing'])
+        with self.assertRaisesRegex(Hold, 'not enabled'):
+            verification_selection(self.workspace, 'modeling')
+        enabled = configure_project(self.workspace, True)
+        self.assertEqual(enabled['budget_percent'], '20')
+        self.assertEqual(enabled['tasks'], ['modeling', 'slicing'])
+        self.assertEqual((self.workspace / 'Project.md').read_bytes(), context)
+
+    def test_first_opt_in_defaults_to_twelve_point_five_and_rejects_invalid_configuration(self):
+        preferences = project_preferences(self.workspace)
+        self.assertFalse(preferences['enabled'])
+        self.assertFalse((self.workspace / PROJECT_VERIFICATION).exists())
+        for percent in ['0', '-1', 'NaN', 'Infinity', True, 12.5]:
+            with self.subTest(percent=percent), self.assertRaises(Hold):
+                configure_project(self.workspace, True, ['modeling'], percent)
+        with self.assertRaisesRegex(Hold, '--tasks'):
+            configure_project(self.workspace, True)
+        self.assertFalse((self.workspace / PROJECT_VERIFICATION).exists())
+        with mock.patch('sys.stdout', new=io.StringIO()) as output:
+            self.assertEqual(main(['configure', '--workspace', str(self.workspace), '--enable', '--tasks', 'all']), 0)
+            self.assertEqual(json.loads(output.getvalue())['budget_percent'], '12.5')
+        with mock.patch('sys.stdout', new=io.StringIO()) as output:
+            self.assertEqual(main(['preferences', '--workspace', str(self.workspace)]), 0)
+            self.assertTrue(json.loads(output.getvalue())['enabled'])
+        self.assertEqual(verification_selection(self.workspace, 'custom-task')['budget_percent'], '12.5')
+        self.assertEqual(verification_selection(self.workspace, 'custom-task', '25')['budget_percent'], '25')
+        with self.assertRaises(Hold):
+            configure_project(self.workspace, True, ['all', 'modeling'])
 
     def test_native_claude_tool_provenance_and_unknown_codex_tools_are_conservative(self):
         names = {}

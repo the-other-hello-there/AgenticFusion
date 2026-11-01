@@ -21,12 +21,14 @@ update = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(update)
 
 
-def manifest(files, history=None, retired=None):
+def manifest(files, history=None, retired=None, branch=None):
     history = history or {}
     data = {"schema_version": 1, "repository": update.REPOSITORY, "hash_mode": "utf8-lf", "files": [
         {"path": name, "sha256": update.digest(value), "previous_sha256": history.get(name, []),
          "policy": "preserve" if name in update.PRESERVE else "managed"} for name, value in sorted(files.items())],
         "retired_files": [{"path": name, "sha256": hashes} for name, hashes in (retired or {}).items()]}
+    if branch is not None:
+        data['branch'] = branch
     raw = (json.dumps(data, indent=2) + "\n").encode()
     return raw, update.load_manifest(raw)
 
@@ -59,10 +61,11 @@ class UpdateChecks(unittest.TestCase):
 
     def test_updates_pristine_files_preserves_project_settings_and_added_skills(self):
         personal = {"Project.md": b"verified dimensions and decisions", "Project/Context/loads.md": b"measured loads",
+                    "Project/Context/Agentic-Verification.json": b'{"enabled":true,"tasks":["modeling"],"budget_percent":"20"}',
                     "Project/skills/project-fit/SKILL.md": b"canonical procedure", ".agents/skills/extra/SKILL.md": b"existing project skill",
                     "Printers.json": b'{"printers":["mine"]}', "FDM-Slicing.md": b"user preferences", ".mcp.json": b"custom MCP",
-                    "Review-Policy.json": b'{"max_review_ratio":"0.12"}',
-                    "settings.json": b"custom settings", ".codex/config.toml": b"custom TOML", "Output CAD/part.step": b"CAD"}
+                    "settings.json": b"custom settings", ".codex/config.toml": b"custom TOML", "Output CAD/part.step": b"CAD",
+                    "Review-Policy.json": b'{"max_review_ratio":"0.12"}'}
         self.write(personal)
         source = dict(self.new, **{key: b"stock defaults" for key in update.PRESERVE})
         report = self.apply(source)
@@ -197,16 +200,149 @@ class UpdateChecks(unittest.TestCase):
             archive.writestr(prefix + update.MANIFEST, raw)
             for name, data in self.new.items():
                 archive.writestr(prefix + name, data)
-        with mock.patch.object(update, "download", side_effect=[json.dumps({"sha": revision}).encode(), buffer.getvalue()]) as request:
-            result = update.get_source()
-            self.assertEqual(result[3], revision)
-            self.assertEqual(result[2], self.new)
-            self.assertTrue(request.call_args_list[1].args[0].endswith("/" + revision))
+        for branch in ['main', 'feature/self-benchmarking', 'feature/budgeted-independent-review']:
+            response = json.dumps({'name': branch, 'commit': {'sha': revision}}).encode()
+            with self.subTest(branch=branch), mock.patch.object(update, "download", side_effect=[response, buffer.getvalue()]) as request:
+                result = update.get_source(branch=branch)
+                self.assertEqual(result[3], revision)
+                self.assertEqual(result[2], self.new)
+                self.assertTrue(request.call_args_list[0].args[0].endswith('/branches/' + branch.replace('/', '%2F')))
+                self.assertTrue(request.call_args_list[1].args[0].endswith("/" + revision))
         empty = io.BytesIO()
         with zipfile.ZipFile(empty, "w"):
             pass
-        with mock.patch.object(update, "download", side_effect=[json.dumps({"sha": revision}).encode(), empty.getvalue()]), self.assertRaisesRegex(update.UpdateError, "Publish"):
+        with mock.patch.object(update, "download", side_effect=[json.dumps({'name': 'main', 'commit': {"sha": revision}}).encode(), empty.getvalue()]), self.assertRaisesRegex(update.UpdateError, "Publish"):
             update.get_source()
+
+    def test_branch_listing_is_paginated_sorted_and_validated(self):
+        page = [{'name': f'feature/test-{number:03}'} for number in range(100)]
+        with mock.patch.object(update, 'download', side_effect=[json.dumps(page).encode(), b'[{"name":"main"}]']) as request:
+            names = update.list_branches()
+            self.assertEqual(names[0], 'main')
+            self.assertEqual(len(names), 101)
+            self.assertTrue(request.call_args_list[1].args[0].endswith('per_page=100&page=2'))
+        for response in [{}, [], [{'name': 'bad\nbranch'}], [{'name': 'main'}, {'name': 'main'}]]:
+            with self.subTest(response=response), mock.patch.object(update, 'download', return_value=json.dumps(response).encode()), self.assertRaises(update.UpdateError):
+                update.list_branches()
+
+    def test_published_branch_metadata_is_checked_and_offline_source_never_downloads(self):
+        revision = 'b' * 40
+        raw, _ = manifest(self.new, branch='main')
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, 'w') as archive:
+            prefix = f'AgenticFusion-{revision}/AgenticFusionTemplate/'
+            archive.writestr(prefix + update.MANIFEST, raw)
+            for name, data in self.new.items():
+                archive.writestr(prefix + name, data)
+        response = json.dumps({'name': 'feature/test', 'commit': {'sha': revision}}).encode()
+        with mock.patch.object(update, 'download', side_effect=[response, buffer.getvalue()]), self.assertRaisesRegex(update.UpdateError, 'another branch'):
+            update.get_source(branch='feature/test')
+        offline = self.root / 'offline'
+        for name, data in {**self.new, update.MANIFEST: raw}.items():
+            path = offline / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+        with mock.patch.object(update, 'download') as download:
+            result = update.get_source(offline)
+        download.assert_not_called()
+        self.assertEqual(update.manifest_branch(result[0]), 'main')
+        self.assertEqual(update.preferred_branch(self.project), 'main')
+
+    def test_branch_prompt_supports_names_numbers_and_saved_suggestion(self):
+        names = ['main', 'feature/budgeted-independent-review', 'feature/self-benchmarking']
+        self.write({update.STATE: json.dumps({'schema_version': 1, 'branch': names[1], 'files': {}}).encode()})
+        before = {p.relative_to(self.project): p.read_bytes() for p in self.project.rglob('*') if p.is_file()}
+        for answer, expected in [('1', 'main'), ('', names[1]), (names[2], names[2])]:
+            with mock.patch.object(update, 'list_branches', return_value=names), mock.patch('builtins.input', return_value=answer) as prompt, mock.patch('sys.stdout', new=io.StringIO()):
+                self.assertEqual(update.choose_branch(self.project), expected)
+                self.assertIn('Enter: ' + names[1], prompt.call_args.args[0])
+        self.assertEqual(before, {p.relative_to(self.project): p.read_bytes() for p in self.project.rglob('*') if p.is_file()})
+
+    def test_missing_previous_branch_requires_a_new_explicit_choice(self):
+        raw, _ = manifest(self.old, branch='feature/deleted')
+        self.write({update.MANIFEST: raw})
+        with mock.patch.object(update, 'list_branches', return_value=['main']), mock.patch('builtins.input', side_effect=['', 'not-found', 'main']) as prompt, mock.patch('sys.stdout', new=io.StringIO()):
+            self.assertEqual(update.choose_branch(self.project), 'main')
+            self.assertEqual(prompt.call_count, 3)
+            self.assertNotIn('Enter:', prompt.call_args.args[0])
+
+    def test_branch_cancellation_unavailable_input_and_network_errors_never_apply(self):
+        for answer in ['q', EOFError(), KeyboardInterrupt()]:
+            arguments = {'side_effect': answer} if isinstance(answer, BaseException) else {'return_value': answer}
+            with self.subTest(answer=type(answer).__name__), mock.patch.object(update, 'list_branches', return_value=['main']), mock.patch('builtins.input', **arguments), mock.patch('sys.stdout', new=io.StringIO()), self.assertRaises(update.UpdateError):
+                update.choose_branch(self.project)
+        with mock.patch.object(update, 'list_branches', side_effect=OSError('network unavailable')), mock.patch('builtins.input') as prompt, self.assertRaises(OSError):
+            update.choose_branch(self.project)
+        prompt.assert_not_called()
+        self.assertFalse((self.project / update.STATE).exists())
+
+    def test_invalid_unresolved_or_mismatched_branches_do_not_fallback(self):
+        for branch in ['', '../main', '-main', 'a//b', 'a@{b', 'a.lock', 'bad\x1bbranch']:
+            with self.subTest(branch=branch), mock.patch.object(update, 'download') as request, self.assertRaises(update.UpdateError):
+                update.get_source(branch=branch)
+            request.assert_not_called()
+        for response in [{'name': 'main', 'commit': {'sha': 'a' * 40}}, {'name': 'feature/test', 'commit': {'sha': 'bad'}}, []]:
+            with mock.patch.object(update, 'download', return_value=json.dumps(response).encode()) as request, self.assertRaises(update.UpdateError):
+                update.get_source(branch='feature/test')
+            self.assertEqual(request.call_count, 1)
+        raw, entries = manifest(self.new, branch='main')
+        with self.assertRaisesRegex(update.UpdateError, 'disagree'):
+            update.apply_update(self.project, raw, entries, self.new, 'test', branch='feature/test')
+        self.assertFalse((self.project / update.STATE).exists())
+
+    def test_success_records_branch_but_preview_conflict_and_rollback_preserve_choice(self):
+        self.apply()
+        original_state = (self.project / update.STATE).read_bytes()
+        raw, entries = manifest({'Agentic-Fusion.md': b'branch instructions'}, branch='feature/test')
+        update.apply_update(self.project, raw, entries, {'Agentic-Fusion.md': b'branch instructions'}, 'test', check=True, branch='feature/test')
+        self.assertEqual((self.project / update.STATE).read_bytes(), original_state)
+        self.write({'Agentic-Fusion.md': b'customized'})
+        report = update.apply_update(self.project, raw, entries, {'Agentic-Fusion.md': b'branch instructions'}, 'test', branch='feature/test')
+        self.assertEqual(report['status'], 'conflicts')
+        self.assertEqual((self.project / update.STATE).read_bytes(), original_state)
+        self.write({'Agentic-Fusion.md': self.new['Agentic-Fusion.md']})
+        original = update.atomic_write
+        def fail(path, data):
+            if path == self.project / update.STATE and data != original_state:
+                raise PermissionError('simulated branch-state failure')
+            original(path, data)
+        with mock.patch.object(update, 'atomic_write', side_effect=fail), self.assertRaises(update.UpdateError):
+            update.apply_update(self.project, raw, entries, {'Agentic-Fusion.md': b'branch instructions'}, 'test', branch='feature/test')
+        self.assertEqual((self.project / update.STATE).read_bytes(), original_state)
+        self.assertEqual((self.project / 'Agentic-Fusion.md').read_bytes(), self.new['Agentic-Fusion.md'])
+        report = update.apply_update(self.project, raw, entries, {'Agentic-Fusion.md': b'branch instructions'}, 'test', branch='feature/test')
+        self.assertEqual(report['branch'], 'feature/test')
+        self.assertEqual(update.preferred_branch(self.project), 'feature/test')
+
+    def test_switching_between_main_and_review_preserves_project_and_review_policy(self):
+        review = dict(self.new, **{'Independent-Review.md': b'review guide', 'Review-Policy.json': b'stock policy', '.agents/scripts/review_guard.py': b'review runtime'})
+        policy = b'custom bounded reviewer and meter'
+        self.write({'Review-Policy.json': policy, 'Project.md': b'current design', '.agents/skills/custom/SKILL.md': b'custom skill'})
+        for branch, files in [('feature/budgeted-independent-review', review), ('main', self.new), ('feature/budgeted-independent-review', review)]:
+            raw, entries = manifest(files, branch=branch)
+            report = update.apply_update(self.project, raw, entries, files, 'test', branch=branch)
+            self.assertEqual(report['status'], 'updated')
+            self.assertEqual(update.preferred_branch(self.project), branch)
+            self.assertEqual((self.project / 'Review-Policy.json').read_bytes(), policy)
+            self.assertEqual((self.project / 'Project.md').read_bytes(), b'current design')
+            self.assertEqual((self.project / '.agents/skills/custom/SKILL.md').read_bytes(), b'custom skill')
+            self.assertEqual((self.project / '.agents/scripts/review_guard.py').exists(), branch != 'main')
+
+    def test_cli_branch_argument_prompt_listing_and_offline_modes(self):
+        raw, entries = manifest(self.new)
+        for arguments, chosen in [([], 'feature/test'), (['--branch', 'main'], 'main'), (['--source', str(self.root)], None)]:
+            with mock.patch('sys.argv', ['updater', '--project-dir', str(self.project), '--check', *arguments]), mock.patch.object(update, 'choose_branch', return_value='feature/test') as choose, mock.patch.object(update, 'get_source', return_value=(raw, entries, self.new, 'test')) as source, mock.patch('sys.stdout', new=io.StringIO()):
+                self.assertEqual(update.main(), 0)
+                self.assertEqual(source.call_args.kwargs['branch'], chosen)
+                self.assertEqual(choose.call_count, 1 if not arguments else 0)
+        with mock.patch('sys.argv', ['updater', '--list-branches']), mock.patch.object(update, 'list_branches', return_value=['main']) as branches, mock.patch.object(update, 'get_source') as source, mock.patch('sys.stdout', new=io.StringIO()) as output:
+            self.assertEqual(update.main(), 0)
+            self.assertEqual(json.loads(output.getvalue())['branches'], ['main'])
+            source.assert_not_called()
+        with mock.patch('sys.argv', ['updater', '--source', str(self.root), '--branch', 'main']), mock.patch('sys.stderr', new=io.StringIO()), self.assertRaises(SystemExit) as stopped:
+            update.main()
+        self.assertEqual(stopped.exception.code, 2)
+        self.assertFalse((self.project / update.STATE).exists())
 
     def test_filesystem_links_are_rejected_without_mutating_targets(self):
         external = self.root / "outside"

@@ -4,7 +4,7 @@ Run `Run-Benchmark.bat` from this folder for a guided Windows benchmark. It copi
 
 ## Benchmark prompts
 
-Run `py -3 Benchmarking/Test-TemplateUpdate.py` for update ownership, custom-file preservation, historical fingerprint adoption, archive verification, conflicts, rollback/concurrent edits and shared project-skill registration. Fixtures use disposable copies and simulated downloads, without GitHub writes or model calls. After runtime edits, run `py -3 Benchmarking/Build-TemplateManifest.py` to regenerate fingerprints, or add `--check` to verify them. Keep generated project resources out of the source package.
+Run `py -3 Benchmarking/Test-TemplateUpdate.py` for branch discovery/prompts, explicit/offline selection, branch-switch policy preservation, update ownership, custom-file preservation, historical fingerprint adoption, archive verification, conflicts, rollback/concurrent edits and shared project-skill registration. Fixtures use disposable copies and simulated downloads, without GitHub writes or model calls. After runtime edits, run `py -3 Benchmarking/Build-TemplateManifest.py` to regenerate fingerprints, or add `--check` to verify them. Keep generated project resources out of the source package.
 
 Run `py -3 Benchmarking/Test-AgentInstallation.py` to check the launchers' missing-CLI permission prompts, selected-agent installation, PATH discovery, version verification, failure handling and immediate startup continuation. It uses fake CLIs and substitutes downloads/installers in disposable child processes; it never installs software or changes the user's PATH. Both `--setup-only` variants must remain free of installation prompts/downloads and application launches.
 
@@ -12,7 +12,7 @@ For maintenance checks without an installed slicer, run `py -3 Benchmarking/Test
 
 Run `py -3 Benchmarking/Test-PrinterLibrary.py` for printer catalog/preset transfer checks. The combined setup check also verifies that both launchers preserve an existing printer library.
 
-Run `py -3 Benchmarking/Test-ReviewGuard.py --assessment` for independent-review controls, Codex/Claude event-stream parity, the local capability probe and explicitly simulated ledgers. Optional `--output Benchmarking/.runs/review-assessment.json` saves an ignored report. See [the assessment](ReviewGuard/Assessment.md) for results and limitations; these tests do not invoke live AI reviewers.
+Run `py -3 Benchmarking/Test-ReviewGuard.py --assessment` for independent-review controls, default-off project opt-in/task scope, saved/overridden reviewer budgets, resume accounting, Codex/Claude event-stream parity, the local capability probe and explicitly simulated ledgers. Optional `--output Benchmarking/.runs/review-assessment.json` saves an ignored report. See [the assessment](ReviewGuard/Assessment.md) for results and limitations; these tests do not invoke live AI reviewers. `powershell.exe -NoProfile -ExecutionPolicy Bypass -File Benchmarking/ReviewGuard/Test-LauncherDispatch.ps1` also checks both launchers' scoped budget arguments, disabled/excluded tasks and ordinary startup using fixtures.
 
 Run `py -3 Benchmarking/Test-PortablePackage.py` after reorganizing the template. It checks the source package against the shared launcher's runtime allowlist, rejects generated/account data, verifies self-contained Markdown links and context budgets, and parses JSON/TOML/Python without creating caches. Keep this maintenance check outside the distributed folder.
 

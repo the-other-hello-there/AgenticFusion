@@ -488,6 +488,8 @@ function Start-AgenticFusion {
                        '--agent', $env:AGENT, '--workspace', $ProjectDir,
                        '--requirements', $env:AGENTIC_REVIEW_TASK, '--policy', $reviewPolicy)
         if ($env:AGENTIC_REVIEW_STATE) { $reviewArgs += @('--state-dir', $env:AGENTIC_REVIEW_STATE) }
+        if ($env:AGENTIC_REVIEW_SCOPE) { $reviewArgs += @('--task-scope', $env:AGENTIC_REVIEW_SCOPE) }
+        if ($env:AGENTIC_REVIEW_BUDGET_PERCENT) { $reviewArgs += @('--budget-percent', $env:AGENTIC_REVIEW_BUDGET_PERCENT) }
         Write-Host 'Starting the independent task supervisor. Candidate output is withheld until review clears.' -ForegroundColor Cyan
         & py @reviewArgs
         exit $LASTEXITCODE

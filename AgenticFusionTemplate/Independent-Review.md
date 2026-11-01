@@ -4,6 +4,29 @@ This experimental runtime supervises a **whole task**, not an agent-selected rev
 
 The runtime is one shared file, `.agents/scripts/review_guard.py`, used by Codex and Claude Code with one `Review-Policy.json`. Python 3.11+ and an installed primary CLI are needed. Other agents can use the documented trusted JSONL bridge contract below.
 
+## Project opt-in, task scope and budget
+
+Agentic verification is **off unless the user explicitly requests it for the project**. Ordinary modeling checks, tests and slice preview still apply. Do not infer paid verification permission from a difficult task, this branch, an installed reviewer or an old environment variable. Both agents read the same preferences at `Project/Context/Agentic-Verification.json`, linked from root `Project.md`. An absent file means disabled. Only configure/change preferences on the user's specific request; this software-maintenance request does not enable verification in any design project.
+
+After the user opts in, record their task types and optional budget:
+
+```powershell
+# Enable only the user-requested task types; omitted budget defaults to 12.5%:
+py -3 .agents/scripts/review_guard.py configure --workspace . --enable --tasks modeling slicing
+# Save a different project cap (percent of measured primary-task spending):
+py -3 .agents/scripts/review_guard.py configure --workspace . --enable --tasks modeling slicing --budget-percent 20
+py -3 .agents/scripts/review_guard.py preferences --workspace .
+py -3 .agents/scripts/review_guard.py configure --workspace . --disable
+```
+
+Use meaningful lowercase task labels agreed with the user, such as `modeling`, `slicing`, `analysis` or `exports`. `--tasks all` explicitly covers all task types. Re-enabling a previously configured project without new tasks/budget reuses the saved choices. Disabling remembers those choices while preventing verification. Setup and template updates preserve the file. The shared project-resource helper indexes it without replacing existing `Project.md` content.
+
+Each supervised task supplies `--task-scope`; it must match an enabled saved label or `all`. Split work spanning enabled and excluded task types into separate scoped tasks; do not apply a covered label to an entire mixed job. Missing opt-in, disabled projects and uncovered/missing scopes hold before a primary/reviewer invocation; they never silently run a requested guarded task unguarded. For a matching task in an interactive session, prepare the supervised invocation below; if trusted controls are unavailable, report that setup is needed. Other tasks use normal agent operation. Ordinary startup does not launch a paid reviewer merely because a preference is saved.
+
+The default reviewer cap is **12.5% of measured primary-task consumption**. The saved project budget applies to matching tasks; an explicit user `run --budget-percent N` overrides it for one task without changing project preferences. Positive finite percentages above or below the default are accepted. Both agents use the same measured units, per-call charge ceiling and reservation rules. Neither an opt-in nor a budget value supplies a working bounded reviewer/meter adapter. Once started, the protected task authority freezes its selected scope and budget. Resume uses the same arguments and rejects budget/scope changes instead of resetting or silently enlarging allowances; configure future tasks separately.
+
+Project preferences are user memory, not an OS security boundary. The trusted operator must verify the recorded opt-in/task label before launch and protect controller state from the primary. An agent may record an actual user request through `configure`; it must never fabricate permission or relabel an uncovered task to make it eligible.
+
 ## Readiness and limits
 
 **The supplied policy is intentionally not ready for paid use.** It has no reviewer command or verified spend-ceiling contract. It exits with `DELIVERY HELD` before starting a primary model. A real bounded reviewer adapter must be supplied by the operator; the deterministic test reviewer is not an AI reviewer and must not be used for production approvals.
@@ -27,11 +50,11 @@ Write the original user request verbatim into a task file through the operator/u
 Configure a copy of `Review-Policy.json` with a trusted `reviewer_command` and an established `reviewer_enforces_charge_ceiling` contract. Set `unit` to `usd` or `credits`, consistently across every meter and reviewer receipt. Keep the default external-meter mode for identical Codex/Claude behavior; native runtime mode is an explicit capability-dependent option. A `true` policy flag is an operator attestation, **not proof that an arbitrary adapter caps spending**.
 
 ```powershell
-py -3 .agents/scripts/review_guard.py run --agent codex --workspace . --requirements 'C:\ReviewControl\task.txt' --policy 'C:\ReviewControl\policy.json' --state-dir 'C:\ReviewControl\task-001'
-py -3 .agents/scripts/review_guard.py run --agent claude --workspace . --requirements 'C:\ReviewControl\task.txt' --policy 'C:\ReviewControl\policy.json' --state-dir 'C:\ReviewControl\task-002'
+py -3 .agents/scripts/review_guard.py run --agent codex --workspace . --task-scope modeling --requirements 'C:\ReviewControl\task.txt' --policy 'C:\ReviewControl\policy.json' --state-dir 'C:\ReviewControl\task-001'
+py -3 .agents/scripts/review_guard.py run --agent claude --workspace . --task-scope modeling --requirements 'C:\ReviewControl\task.txt' --policy 'C:\ReviewControl\policy.json' --state-dir 'C:\ReviewControl\task-002'
 ```
 
-Both regular Fusion launchers can select this runtime by setting `AGENTIC_REVIEW_TASK` to that task file and `AGENTIC_REVIEW_POLICY` to the protected policy before launching. Their normal initialization/Fusion startup remains intact; the guarded task replaces the interactive agent invocation. Unset those variables for ordinary **unguarded** sessions. A primary child cannot unset environment variables in the already-running parent supervisor.
+Both regular Fusion launchers can select this runtime by setting `AGENTIC_REVIEW_TASK` to that task file, `AGENTIC_REVIEW_POLICY` to the protected policy and `AGENTIC_REVIEW_SCOPE` to the user-authorized task type. Optional `AGENTIC_REVIEW_BUDGET_PERCENT` supplies a user-requested task override; optional `AGENTIC_REVIEW_STATE` chooses the external state folder. The saved project opt-in remains required. Their normal initialization/Fusion startup remains intact; the guarded task replaces the interactive agent invocation. Unset task/policy/scope/budget/state variables for ordinary **unguarded** sessions. A primary child cannot unset environment variables in the already-running parent supervisor.
 
 The primary must not call the reviewer itself, choose whether review happens, or supply the authoritative requirements. Its output is candidate evidence only. Only the supervisor releases its captured final answer after a current clear decision. Exiting a child, disabling project hooks, claiming approval in a file, or exhausting budget does not release that output.
 
@@ -54,7 +77,7 @@ The operator must authenticate that the statement really came from the user. A p
 
 ## Accounting and recovery
 
-The default budget is **12.4%** of measured primary consumption, strictly below 12.5%. The next review reserves at most `min(per-call ceiling, primary × ratio − all previous charged/reserved review cost)`. A request is dispatched only after its reservation is persisted. The adapter receives that exact maximum and must enforce it across its entire invocation, including hidden calls, tools and retries. The supervisor requests no adapter retries.
+The selected budget defaults to **12.5%** of measured primary consumption, with equality allowed. Project/task choices set the effective `max_review_ratio`; raw policy users get the same default when the field is absent. The next review reserves at most `min(per-call ceiling, primary × ratio − all previous charged/reserved review cost)`. A request is dispatched only after its reservation is persisted. The adapter receives that exact maximum and must enforce it across its entire invocation, including hidden calls, tools and retries. The supervisor requests no adapter retries.
 
 Measured review receipts replace reservations with actual cost. Missing receipts, timeout, process failure or interruption retain the full reservation. There are no free retry attempts. A failed identical packet permits at most one charged retry on resumption; a decided packet cannot be re-argued. If an adapter reports an overrun, the actual amount and breach are recorded and delivery is blocked. This detects a broken cap contract; it cannot undo a charge already made by an adapter that violated the contract.
 
@@ -63,6 +86,8 @@ The ratio covers reviewer adapter consumption, including its subcalls/retries. P
 `authority.json`, `baseline.json`, `ledger.json`, `events.jsonl`, per-attempt review input/output packets, `primary-stderr.log`, and `report.json` live in the outside state directory. They are runtime data and must not be copied into the distributable template. Reports label units, measured primary cost, charged/reserved reviewer cost, unknown charges, ratio, attempts, deferred boundaries, observed coverage gaps and enforcement limits. A zero measured primary total is not a claim that a failed/unmetered task was free.
 
 Resume with the same arguments plus `--resume`. Original authority, initial artifact baseline, charged/unknown reservations and revision counts survive recovery. A resumed primary receives original requirements and stored findings instead of relying on its own remembered summary. An existing state directory cannot be reused accidentally without `--resume`.
+
+If later project preferences select a different budget, resume an eligible paused task with its original percentage explicitly; its recorded cap cannot be enlarged on resume. Disabled/excluded task choices stop resumption. Older controller directories without a recorded verification scope/budget cannot be silently adopted by this runtime: keep their original protected runtime for completion or plan an explicit operator migration that retains the ledger. Never delete prior state to bypass accounting or opt-in checks.
 
 ## Trusted adapter contracts
 

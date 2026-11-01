@@ -12,6 +12,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 import uuid
 import zipfile
@@ -37,6 +38,23 @@ def digest(data):
     if data.startswith(b"\xef\xbb\xbf"):
         data = data[3:]
     return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
+
+
+def branch_name(value):
+    if (not isinstance(value, str) or not value or value == '@' or value.startswith('-') or
+            any(character.isspace() or ord(character) < 32 or ord(character) == 127 for character in value) or
+            re.search(r'[~^:?*\[\\]', value) or '..' in value or '@{' in value or value.endswith('.') or
+            any(not part or part.startswith('.') or part.endswith('.lock') for part in value.split('/'))):
+        raise UpdateError('Invalid branch name')
+    return value
+
+
+def manifest_branch(data):
+    metadata = json.loads(data.decode('utf-8-sig'))
+    if not isinstance(metadata, dict):
+        raise UpdateError('Invalid template branch metadata')
+    value = metadata.get('branch')
+    return branch_name(value) if value is not None else None
 
 
 def package_path(value, legacy_metadata=False):
@@ -82,6 +100,7 @@ def load_manifest(data):
         manifest = json.loads(data.decode("utf-8-sig"))
         if manifest["schema_version"] != 1 or manifest["repository"] != REPOSITORY or manifest["hash_mode"] != "utf8-lf":
             raise ValueError("Unsupported template manifest")
+        manifest_branch(data)
         result = {}
         names = set()
         for entry in manifest["files"]:
@@ -167,7 +186,64 @@ try {
     return data
 
 
-def get_source(directory=None):
+def list_branches():
+    """List every branch, without resolving tags or downloading template archives."""
+    names = set()
+    for page in range(1, 101):
+        entries = json.loads(download(f'https://api.github.com/repos/{REPOSITORY}/branches?per_page=100&page={page}'))
+        if not isinstance(entries, list) or len(entries) > 100:
+            raise UpdateError('GitHub returned an invalid branch list')
+        for entry in entries:
+            if not isinstance(entry, dict):
+                raise UpdateError('GitHub returned an invalid branch')
+            name = branch_name(entry.get('name'))
+            if name in names:
+                raise UpdateError('GitHub returned duplicate branches; retry the update')
+            names.add(name)
+        if len(entries) < 100:
+            if not names:
+                raise UpdateError('No branches are available')
+            return sorted(names, key=lambda name: (name != 'main', name))
+    raise UpdateError('Branch listing exceeded its page limit')
+
+
+def preferred_branch(project):
+    for location in (STATE, LEGACY_STATE, MANIFEST, LEGACY_MANIFEST):
+        path = safe_path(project, location)
+        if path.is_file():
+            name = manifest_branch(path.read_bytes())
+            if name is not None:
+                return name
+    return 'main'
+
+
+def choose_branch(project):
+    names = list_branches()
+    previous = preferred_branch(project)
+    default = previous if previous in names else None
+    print('Available update branches:')
+    for number, name in enumerate(names, 1):
+        label = ' (suggested)' if name == default else ''
+        print(f'  {number}. {name}{label}')
+    if default is None:
+        print(f'Previous branch {previous} is unavailable; choose a branch explicitly.')
+    while True:
+        try:
+            answer = input(f'Choose a number or branch name{f" [Enter: {default}]" if default else ""}; q to cancel: ').strip()
+        except (EOFError, KeyboardInterrupt) as error:
+            raise UpdateError('Branch selection cancelled or input unavailable; pass --branch NAME for unattended use.') from error
+        if answer.lower() in {'q', 'quit', 'cancel'}:
+            raise UpdateError('Branch selection cancelled; no project files changed.')
+        if not answer and default:
+            return default
+        if answer in names:
+            return answer
+        if answer.isascii() and answer.isdigit() and 1 <= int(answer) <= len(names):
+            return names[int(answer) - 1]
+        print('Choose a listed branch or q to cancel.')
+
+
+def get_source(directory=None, branch='main'):
     if directory:
         root = Path(directory).resolve(strict=True)
         if not (root / MANIFEST).is_file() and (root / "AgenticFusionTemplate" / MANIFEST).is_file():
@@ -177,8 +253,12 @@ def get_source(directory=None):
         files = {name: safe_path(root, name).read_bytes() for name in manifest}
         revision = "local-" + digest(raw)[:12]
     else:
-        revision = json.loads(download(f"https://api.github.com/repos/{REPOSITORY}/commits/main"))["sha"]
-        if not re.fullmatch(r"[0-9a-f]{40}", revision):
+        branch = branch_name(branch)
+        resolved = json.loads(download(f'https://api.github.com/repos/{REPOSITORY}/branches/{quote(branch, safe="")}'))
+        if not isinstance(resolved, dict) or resolved.get('name') != branch or not isinstance(resolved.get('commit'), dict):
+            raise UpdateError('GitHub did not return the requested branch; no fallback was used')
+        revision = resolved['commit'].get('sha')
+        if not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{40}", revision):
             raise UpdateError("GitHub did not return a commit ID")
         archive = download(f"https://codeload.github.com/{REPOSITORY}/zip/{revision}")
         with zipfile.ZipFile(io.BytesIO(archive)) as package:
@@ -187,10 +267,13 @@ def get_source(directory=None):
             def read(name):
                 matches = [item for item in members if item.filename == prefix + name]
                 if len(matches) != 1 or matches[0].file_size > 2 * 1024 * 1024 or stat.S_ISLNK(matches[0].external_attr >> 16):
-                    raise UpdateError(f"Missing, duplicate or unsafe package entry: {name}. Publish the updater-capable template to main first.")
+                    raise UpdateError(f"Missing, duplicate or unsafe package entry: {name}. Publish the updater-capable template to the selected branch first.")
                 return package.read(matches[0])
             raw = read(MANIFEST)
             manifest = load_manifest(raw)
+            published_branch = manifest_branch(raw)
+            if published_branch is not None and published_branch != branch:
+                raise UpdateError('The downloaded manifest belongs to another branch')
             if sum(item.file_size for item in members) > MAX_DOWNLOAD:
                 raise UpdateError("Expanded archive exceeds the template size limit")
             files = {name: read(name) for name in manifest}
@@ -317,14 +400,21 @@ def plan_update(project, manifest, files, retired=None):
     return operations, conflicts, preserved, next_baseline
 
 
-def apply_update(project, raw, manifest, files, revision, check=False):
+def apply_update(project, raw, manifest, files, revision, check=False, branch=None):
     project = Path(project).resolve(strict=True)
+    published_branch = manifest_branch(raw)
+    if branch is not None:
+        branch = branch_name(branch)
+        if published_branch is not None and published_branch != branch:
+            raise UpdateError('The requested branch and source manifest disagree')
+    else:
+        branch = published_branch
     retired = retired_fingerprints(raw)
     if set(manifest).intersection(retired):
         raise UpdateError('A template file cannot be both active and retired')
     operations, conflicts, preserved, baseline = plan_update(project, manifest, files, retired)
     report = {"revision": revision, "status": "conflicts" if conflicts else "check" if check else "updated",
-              "changes": list(operations), "conflicts": conflicts, "preserved": preserved}
+              "branch": branch, "changes": list(operations), "conflicts": conflicts, "preserved": preserved}
     if check:
         return report
     with update_lock(project):
@@ -338,7 +428,8 @@ def apply_update(project, raw, manifest, files, revision, check=False):
                 atomic_write(safe_path(project, incoming + "/" + name), files[name])
             report.update(status="conflicts", incoming=incoming)
             return report
-        state = json.dumps({"schema_version": 1, "revision": revision, "files": baseline}, indent=2).encode() + b"\n"
+        state = json.dumps({"schema_version": 1, "revision": revision, "branch": branch or preferred_branch(project),
+                            "files": baseline}, indent=2).encode() + b"\n"
         for name, data in [(MANIFEST, raw), (STATE, state)]:
             path = safe_path(project, name)
             operations[name] = (path.read_bytes() if path.is_file() else None, data)
@@ -385,12 +476,20 @@ def apply_update(project, raw, manifest, files, revision, check=False):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project-dir", type=Path, default=Path(__file__).resolve().parents[1])
-    parser.add_argument("--source", type=Path, help="Verified offline template or repository directory")
+    source = parser.add_mutually_exclusive_group()
+    source.add_argument("--source", type=Path, help="Verified offline template or repository directory; no branch prompt or network")
+    source.add_argument("--branch", help="Explicit GitHub branch chosen by the user; otherwise prompt")
+    source.add_argument("--list-branches", action="store_true", help="List available GitHub branches as JSON without updating")
     parser.add_argument("--check", action="store_true", help="Preview without changing any project files")
     args = parser.parse_args()
     try:
-        raw, manifest, files, revision = get_source(args.source)
-        report = apply_update(args.project_dir, raw, manifest, files, revision, args.check)
+        if args.list_branches:
+            print(json.dumps({'branches': list_branches()}, indent=2))
+            return 0
+        project = args.project_dir.resolve(strict=True)
+        branch = (args.branch if args.branch is not None else choose_branch(project)) if args.source is None else None
+        raw, manifest, files, revision = get_source(args.source, branch=branch)
+        report = apply_update(project, raw, manifest, files, revision, args.check, branch=branch)
         print(json.dumps(report, indent=2))
         if report["conflicts"]:
             print("Local template edits were preserved. Review incoming candidates, move project-only rules into Project/, then rerun.", file=sys.stderr)

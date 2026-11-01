@@ -2,7 +2,7 @@
   "schema_version": 1,
   "unit": "usd",
   "primary_meter_mode": "external",
-  "max_review_ratio": "0.124",
+  "max_review_ratio": "0.125",
   "review_call_ceiling": "0.01",
   "max_reviews": 3,
   "max_revisions": 2,
