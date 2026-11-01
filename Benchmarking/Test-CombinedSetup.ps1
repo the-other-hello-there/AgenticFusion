@@ -1,10 +1,10 @@
 # Verify optional MCP entries survive both launchers without launching either app.
 $ErrorActionPreference = 'Stop'
-$explorationDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$repositoryDir = Split-Path -Parent (Split-Path -Parent $explorationDir)
+$benchmarkDir = $PSScriptRoot
+$repositoryDir = Split-Path -Parent $benchmarkDir
 $templateDir = Join-Path $repositoryDir 'AgenticFusionTemplate'
-$localDir = Join-Path $explorationDir '.local'
-$testRoot = Join-Path $localDir ([guid]::NewGuid().ToString('N'))
+$runsDir = Join-Path $benchmarkDir '.runs'
+$testRoot = Join-Path $runsDir ([guid]::NewGuid().ToString('N'))
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 
 function Assert-ProjectFiles {
@@ -62,6 +62,9 @@ try {
         foreach ($name in $excludedFiles) {
             if (Test-Path -LiteralPath (Join-Path $project $name)) { throw "Setup copied excluded runtime data: $name" }
         }
+        if (-not (Test-Path -LiteralPath (Join-Path $project '.agents\scripts\application-session.ps1'))) {
+            throw 'Bootstrap omitted the shared application-session helper.'
+        }
         $helper = Join-Path $project '.agents\skills\orca-slice\scripts\start_orca.py'
         $setup = & py -3 $helper --setup-only 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0) { throw "Orca setup failed:`n$setup" }
@@ -92,11 +95,11 @@ try {
 }
 finally {
     $absoluteRoot = [System.IO.Path]::GetFullPath($testRoot).TrimEnd('\')
-    $absoluteParent = [System.IO.Path]::GetFullPath($localDir).TrimEnd('\')
+    $absoluteParent = [System.IO.Path]::GetFullPath($runsDir).TrimEnd('\')
     $leafGuid = [guid]::Empty
     if (-not [System.IO.Path]::GetDirectoryName($absoluteRoot).Equals($absoluteParent, [System.StringComparison]::OrdinalIgnoreCase) -or
         -not [guid]::TryParseExact([System.IO.Path]::GetFileName($absoluteRoot), 'N', [ref]$leafGuid)) {
-        throw "Refusing cleanup outside the exploration's .local directory: $absoluteRoot"
+        throw "Refusing cleanup outside Benchmarking/.runs: $absoluteRoot"
     }
     if (Test-Path -LiteralPath $absoluteRoot) { Remove-Item -LiteralPath $absoluteRoot -Recurse -Force }
 }

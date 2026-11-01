@@ -6,17 +6,20 @@ Read this guide each session in Claude Code or Codex. Designs live in Fusion clo
 
 Read `Project.md`'s `Current state` for intent, interfaces, parameters, decisions, document names and open items. If absent, scan headings and read relevant sections only. Load skills and references by task; read `FDM-Slicing.md` only for FDM work. Discover MCP tools by their actual schemas, since names vary by client/build.
 
+Check the shared [application-session](.agents/skills/application-session/SKILL.md) status at startup, before substantial app work, after long operations and before yielding. Close unused task documents/windows after save/ownership checks. Checkpoint live work at verified milestones and before agent usage exhaustion. At 11.5 hours prepare maintenance; at 12 hours stop new work in that application, save/verify, perform full context-preserving cleanup and request safe-restart approval. After approval restart/reconnect/restore automatically and verify before resuming. Keep ongoing tasks in `Project.md`; preserve user work and never force-quit to satisfy the deadline. AI-agent processes and unrelated user applications are excluded.
+
 | Condition | Action |
 | --- | --- |
 | Inspect | Use MCP read or read-only execution; leave geometry unchanged. Load the relevant `fusion-model` reference for scripts. |
 | Model | Establish function, loads, interfaces, and intent-level parameters; use `fusion-model`, verify geometry, constraints, fit, and motion, then save. |
 | Print | Use `fusion-print` and only task-relevant references. |
-| Start OrcaSlicer or prepare/inspect an FDM slice | Use `orca-slice`; read `FDM-Slicing.md` and the current print state in `Project.md`. |
+| Start an Orca-family slicer or prepare/inspect an FDM slice | Use `orca-slice`; discover installed slicers and ask which to use, keep slicing headless when supported, then open the final result for required UI preview. Read `FDM-Slicing.md` and the current print state in `Project.md`. |
 | Define or migrate a printer/profile | Use `printer-library`; read the relevant `Printers.json` record. |
 | Calibrate a printer/nozzle/material | Use `fdm-calibrate`; distinguish measured results from slice estimates. |
 | Compare slicing variants | Use `slice-compare`; preserve and verify the accepted baseline. |
 | Broad DfAM assessment | Use `fusion-print` and its linked `DfAM.md` protocol for the parts in scope. |
 | Observed call, save, sketch, feature, or DfAM failure | Use `fusion-repair` for the symptom; retain preventive and printing rules. |
+| Unused app resources, usage-limit handoff, or application restart deadline | Use `application-session` for shared checkpoints, cleanup, graceful close/restart and resumption. |
 
 For supervised tasks, use the runtime described in `Independent-Review.md`. It retains original user requirements and independently gates its delivery channel; the primary cannot waive required reviews or authorize exceptions. Budget exhaustion, failure and missing evidence never establish approval. This runtime requires protected controller state and a verified bounded reviewer/meter adapter; ordinary unguarded launches are not covered.
 
@@ -28,7 +31,8 @@ For supervised tasks, use the runtime described in `Independent-Review.md`. It r
 
 ## Folder and launcher rules
 
-- Copy the portable folder together, including both launchers, authored context, `.agents/` and `.codex/`. Either launcher accepts a dragged project folder and copies missing portable files, preserving existing context, skills and launchers while updating Fusion connection settings. Orca startup is opt-in through `orca-slice`; ordinary Fusion startup needs neither Python nor a slicer.
+- Copy both launchers, `Agentic-Fusion.md`, `FDM-Slicing.md`, `Printers.json`, `CLAUDE.md`, `AGENTS.md`, `.agents/` (shared skills and Claude plugin), `.mcp.json`, `settings.json`, and `.codex/` together. Either launcher accepts a dragged project folder and copies missing files without replacing context or an existing printer library. Orca startup is opt-in through `orca-slice`; ordinary Fusion startup does not need Python or a slicer.
+- Keep the source migration package runtime-only: launcher/configuration files, shared instructions and on-demand skill resources. Maintenance tests, assessments, backups and generated agent data stay outside it. Copied design projects may add their own verified `Project.md`, inputs and job outputs.
 - Create `Reference CAD/` when source CAD files are supplied and `Output CAD/` for requested exports; the blank template needs neither directory. Overwrite the existing export file when asked to update it. If `personal logs/` exists in a project, leave it alone unless asked. Never read, print, or copy `.credentials.json`. Exclude `.credentials.json` and `.claude.json` from any template copy; they belong to one machine or account. Do not initialize Git here without the user's direction.
 - Keep temporary build scripts in the session scratchpad and design results in Fusion. Do not archive ordinary projects.
 

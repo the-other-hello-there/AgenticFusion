@@ -4,3 +4,5 @@ __pycache__/
 .claude/
 .codex/log/
 .codex/sessions/
+.credentials.json
+.claude.json

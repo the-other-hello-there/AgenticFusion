@@ -16,19 +16,32 @@ try {
     $insert = $body.LastIndexOf('try { Start-AgenticFusion }')
     if ($insert -lt 0) { throw 'Cannot locate the launcher entrypoint.' }
     $stubs = @'
-function Confirm-Agent { param([string]$Name) return $true }
+function Confirm-AgentInstallation {
+    param([string]$Agent)
+    if ($script:fixtureCliMissing) { return $null }
+    return $Agent
+}
 function Test-McpPort { param([int]$Port) return $true }
-function Get-Process { [CmdletBinding()] param([string]$Name) return [pscustomobject]@{ProcessName='Fusion360'} }
+function Get-Process {
+    [CmdletBinding()] param([string]$Name)
+    $script:fixtureFusionCalls++
+    if ($script:fixtureFusionCalls -eq 1) { return [pscustomobject]@{ProcessName='Fusion360'; Id=424242} }
+    return @()
+}
 '@
     foreach ($agentName in @('codex', 'claude')) {
-        $project = Join-Path $testRoot ($agentName + ' project')
+      foreach ($case in @('preflight', 'missing-cli')) {
+        $scenario = $agentName + '-' + $case
+        $project = Join-Path $testRoot ($scenario + ' project')
         New-Item -ItemType Directory -Path $project | Out-Null
-        $requirements = Join-Path $testRoot ($agentName + '-task.txt')
+        $requirements = Join-Path $testRoot ($scenario + '-task.txt')
         [System.IO.File]::WriteAllText($requirements, 'Do not start any model; validate guarded preflight.', $utf8)
-        $policy = Join-Path $testRoot ($agentName + '-policy.json')
+        $policy = Join-Path $testRoot ($scenario + '-policy.json')
         Copy-Item -LiteralPath (Join-Path $templateDir 'Review-Policy.json') -Destination $policy
-        $state = Join-Path $testRoot ($agentName + '-controller')
+        $state = Join-Path $testRoot ($scenario + '-controller')
+        $missingLiteral = if ($case -eq 'missing-cli') { '$true' } else { '$false' }
         $header = @(
+            ('$script:fixtureCliMissing = ' + $missingLiteral),
             ('$env:SELF = ' + (Quote-Literal $launcher)),
             ('$env:PROJDIR = ' + (Quote-Literal $project)),
             ('$env:AGENT = ' + (Quote-Literal $agentName)),
@@ -37,19 +50,28 @@ function Get-Process { [CmdletBinding()] param([string]$Name) return [pscustomob
             ('$env:AGENTIC_REVIEW_POLICY = ' + (Quote-Literal $policy)),
             ('$env:AGENTIC_REVIEW_STATE = ' + (Quote-Literal $state))
         ) -join "`n"
-        $harness = Join-Path $testRoot ($agentName + '-launch.ps1')
+        $harness = Join-Path $testRoot ($scenario + '-launch.ps1')
         [System.IO.File]::WriteAllText($harness, ($header + "`n" + $body.Substring(0, $insert) + $stubs + "`n" + $body.Substring($insert)), $utf8)
-        $stdout = Join-Path $testRoot ($agentName + '-stdout.txt')
-        $stderr = Join-Path $testRoot ($agentName + '-stderr.txt')
+        $stdout = Join-Path $testRoot ($scenario + '-stdout.txt')
+        $stderr = Join-Path $testRoot ($scenario + '-stderr.txt')
         $arguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $harness + '"'
         $process = Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
         $output = [System.IO.File]::ReadAllText($stdout) + [System.IO.File]::ReadAllText($stderr)
+        if ($case -eq 'missing-cli') {
+            if ($process.ExitCode -ne 2 -or $output -notmatch 'Guarded task could not start its primary runtime' -or
+                $output -match 'independent task supervisor' -or (Test-Path -LiteralPath $state)) {
+                throw "$agentName did not stop a guarded launch when installation was declined or failed:`n$output"
+            }
+            Write-Output "$agentName guarded launch stopped before Fusion/supervisor when the selected CLI was unavailable."
+            continue
+        }
         if ($process.ExitCode -ne 2 -or $output -notmatch 'DELIVERY HELD' -or $output -notmatch 'independent task supervisor') {
             throw "$agentName guarded dispatch failed (exit $($process.ExitCode)):`n$output"
         }
         $report = Get-Content -LiteralPath (Join-Path $state 'report.json') -Raw | ConvertFrom-Json
         if ($report.status -ne 'held' -or $report.accounting.attempts -ne 0) { throw "$agentName did not hold before model review." }
         Write-Output "$agentName launcher dispatched to the real supervisor, held preflight, and propagated exit 2; no model invoked."
+      }
     }
 }
 finally {

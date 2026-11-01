@@ -57,7 +57,7 @@ py -3 Benchmarking/Test-ReviewGuard.py --assessment --output Benchmarking/.runs/
 py -3 Benchmarking/Test-OrcaSlicer.py
 py -3 Benchmarking/Test-PrinterLibrary.py
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File Benchmarking/Benchmark.ps1 -SelfTest
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File Explorations/OrcaSlicer/Test-CombinedSetup.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File Benchmarking/Test-CombinedSetup.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File Benchmarking/ReviewGuard/Test-LauncherDispatch.ps1
 ```
 
