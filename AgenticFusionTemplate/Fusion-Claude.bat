@@ -211,10 +211,13 @@ function Write-ProjectJson {
 
 function Initialize-ProjectFiles {
     $portable = @(
-        'Fusion-Claude.bat', 'Fusion-Codex.bat', 'Agentic-Fusion.md', 'DfAM.md', 'FDM-Slicing.md', 'Printers.json', 'CLAUDE.md', 'AGENTS.md', '.gitignore',
+        'Fusion-Claude.bat', 'Fusion-Codex.bat', 'Update-Template.bat', 'Template-Manifest.json', 'Agentic-Fusion.md', 'DfAM.md', 'FDM-Slicing.md', 'Printers.json', 'CLAUDE.md', 'AGENTS.md', '.gitignore',
         '.mcp.json', 'settings.json', '.codex\config.toml',
         '.codex\hooks.json', '.agents\hooks\hooks.json', '.agents\scripts\task-complete.ps1',
         '.agents\scripts\application-session.ps1',
+        '.agents\scripts\project-resources.ps1', '.agents\scripts\update_template.py',
+        '.agents\skills\project-resources\SKILL.md',
+        '.agents\skills\project-resources\references\workspace.md',
         '.agents\.claude-plugin\plugin.json',
         '.agents\skills\application-session\SKILL.md',
         '.agents\skills\application-session\references\lifecycle.md',
@@ -291,6 +294,14 @@ This file holds the current design intent and decisions for this design only. Ke
         [System.IO.File]::WriteAllText($projectFile, ($starter + "`n"), $utf8)
         Write-Host 'Created Project.md' -ForegroundColor Yellow
     }
+}
+
+function Sync-ProjectResources {
+    $helper = Join-Path $ProjectDir '.agents\scripts\project-resources.ps1'
+    # A terminal backslash in a quoted native argument can consume its closing quote.
+    $resourceDir = Join-Path $ProjectDir '.'
+    & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $helper -Action Sync -ProjectDir $resourceDir | Out-Host
+    if ($LASTEXITCODE -ne 0) { throw 'Project resource registration failed; existing resources were preserved.' }
 }
 
 function Ensure-ProjectMcp {
@@ -398,6 +409,7 @@ function Start-AgenticFusion {
     Ensure-ProjectMcp
     Ensure-CodexMcp
     $settingsFile = Ensure-ProjectSettings
+    Sync-ProjectResources
     $contextFits = Test-ContextBudget
     if ($env:SETUP_ONLY -eq '1') {
         Write-Host "Project initialized: $ProjectDir" -ForegroundColor Green
@@ -453,7 +465,7 @@ function Start-AgenticFusion {
     foreach ($fusionSession in @(Get-Process -Name $ProcessName -ErrorAction SilentlyContinue)) {
         try {
             $trackArgs = @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',$sessionHelper,
-                '-Action','Register','-ProjectDir',$ProjectDir,'-ProcessId',$fusionSession.Id,'-Kind','Fusion','-StartMonitor')
+                '-Action','Register','-ProjectDir',(Join-Path $ProjectDir '.'),'-ProcessId',$fusionSession.Id,'-Kind','Fusion','-StartMonitor')
             if ($restartLauncher) { $trackArgs += @('-LaunchPath', $restartLauncher) }
             $registration = & powershell.exe @trackArgs | Out-String
             if ($LASTEXITCODE -ne 0) { throw 'Session registration failed.' }

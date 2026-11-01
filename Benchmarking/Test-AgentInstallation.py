@@ -65,6 +65,7 @@ function Initialize-ProjectFiles {}
 function Ensure-ProjectMcp {}
 function Ensure-CodexMcp {}
 function Ensure-ProjectSettings { return (Join-Path $Project 'settings.json') }
+function Sync-ProjectResources {}
 function Test-ContextBudget { return $true }
 function Get-Process {
     param([string]$Name)

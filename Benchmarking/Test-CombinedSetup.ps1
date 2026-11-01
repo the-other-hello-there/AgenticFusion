@@ -14,7 +14,7 @@ try {
         New-Item -ItemType Directory -Path $project | Out-Null
         $projectFile = Join-Path $project 'Project.md'
         [System.IO.File]::WriteAllText($projectFile, "# Project: preserve verified context`n", $utf8)
-        $contextHash = (Get-FileHash -LiteralPath $projectFile).Hash
+        $originalContext = [IO.File]::ReadAllText($projectFile)
         $slicingFile = Join-Path $project 'FDM-Slicing.md'
         [System.IO.File]::WriteAllText($slicingFile, "# FDM preferences`nUser preference: preserve this existing entry.`n", $utf8)
         $slicingHash = (Get-FileHash -LiteralPath $slicingFile).Hash
@@ -25,6 +25,11 @@ try {
         $printerHash = (Get-FileHash -LiteralPath $printerFile).Hash
         $bootstrap = & (Join-Path $templateDir $firstLauncher) $project --setup-only 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0 -or $bootstrap -match '(?m)^Error:') { throw "Bootstrap failed:`n$bootstrap" }
+        if (-not [IO.File]::ReadAllText($projectFile).StartsWith($originalContext) -or
+            [IO.File]::ReadAllText($projectFile) -notmatch '\]\(Project/\)') {
+            throw 'Setup must preserve existing project context and append its project-resource index.'
+        }
+        $contextHash = (Get-FileHash -LiteralPath $projectFile).Hash
         foreach ($name in @('SKILL.md', 'references\startup.md', 'references\workflow.md',
                             'references\settings.md', 'references\layer-height.md', 'references\support-materials.md', 'scripts\start_orca.py',
                             'scripts\slicer.py', 'scripts\slicer_windows.ps1')) {
