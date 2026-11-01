@@ -36,12 +36,6 @@
       "policy": "managed"
     },
     {
-      "path": ".agents/scripts/update_template.py",
-      "sha256": "d9e65accb0cd8882a36d2de93816c4fe6f6cbde048570453ab6f2138e9de0d00",
-      "previous_sha256": [],
-      "policy": "managed"
-    },
-    {
       "path": ".agents/skills/application-session/SKILL.md",
       "sha256": "15e260aad3091a97052dd8c10fa08a8ac5ebaba36c7a5c0dcab36e91b9cf36b9",
       "previous_sha256": [],
@@ -310,14 +304,18 @@
     },
     {
       "path": ".agents/skills/project-resources/SKILL.md",
-      "sha256": "43b3d8ee52ddbf29643a33573370a60c4764ac3c88bd594d60d4f043b34cb268",
-      "previous_sha256": [],
+      "sha256": "e4de9fbecfe6e1896c508abbc6da00260221699468bd0103784d22129d53794c",
+      "previous_sha256": [
+        "43b3d8ee52ddbf29643a33573370a60c4764ac3c88bd594d60d4f043b34cb268"
+      ],
       "policy": "managed"
     },
     {
       "path": ".agents/skills/project-resources/references/workspace.md",
-      "sha256": "8f95b7e7814da399b97d9964b4ea1a8b8249e7980d280c62f7b64e55d551925b",
-      "previous_sha256": [],
+      "sha256": "a07831dd595dac6b0a74ef176ac9acf9af91d7e48f0d9587f306a8f67857d0fe",
+      "previous_sha256": [
+        "8f95b7e7814da399b97d9964b4ea1a8b8249e7980d280c62f7b64e55d551925b"
+      ],
       "policy": "managed"
     },
     {
@@ -353,6 +351,26 @@
       "sha256": "83e7329a672e826a9322bf39f20e33ddb3f734de3cd8362f23da7d451f00faea",
       "previous_sha256": [],
       "policy": "preserve"
+    },
+    {
+      "path": ".updater/.gitignore",
+      "sha256": "131cb037ef12716a1daa056db5f44cc67d0532faba8f5228aed031272400a0d2",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".updater/README.md",
+      "sha256": "5cd1da2bb663529defa91f08f23e6122e0f6eede05feff03608be7098e1e6abf",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".updater/update_template.py",
+      "sha256": "a1b96e9eaa3b8309ce67b897f609650eceb1049504e0cb17e37d8c8a72ae71cb",
+      "previous_sha256": [
+        "d9e65accb0cd8882a36d2de93816c4fe6f6cbde048570453ab6f2138e9de0d00"
+      ],
+      "policy": "managed"
     },
     {
       "path": "AGENTS.md",
@@ -417,7 +435,7 @@
     },
     {
       "path": "Fusion-Claude.bat",
-      "sha256": "e0a85950f768283671c1c669bfd150491da6073944ce58f5d126fbb2407339bb",
+      "sha256": "c58612e29ad25d2eac6c9220a9d368566c5cb489a4ee82c76c8fd563e83e63f9",
       "previous_sha256": [
         "28b9ba862f1bc999547c0a72137ceecf0fb5932a8d65d5f4c27da4544492bb77",
         "44ee7e4e31d78e55fd903183118fea41580b3619766d074841eb762400f88f75",
@@ -427,7 +445,8 @@
         "686425b386dce330d0a46dc5bdf25ea01e0347aea940bedd75a579d9c352807c",
         "7cfb51db3e17a6cf691181fc3dee4ccae2dd152d93b4c557f54669f3cda147d3",
         "7d714eb5e2629ba1248242fb3a6692d149b375bfeed9dc8639569099e0ca7748",
-        "8ff7ee228cc74dae55e8278c65538b48770302a1b013be897c8e0376ec74f9ae"
+        "8ff7ee228cc74dae55e8278c65538b48770302a1b013be897c8e0376ec74f9ae",
+        "e0a85950f768283671c1c669bfd150491da6073944ce58f5d126fbb2407339bb"
       ],
       "policy": "managed"
     },
@@ -444,16 +463,38 @@
       "policy": "preserve"
     },
     {
-      "path": "Update-Template.bat",
-      "sha256": "13f0476bd86a437277fc610afe7646c1be8963cce382015badfd8ac8101404ce",
-      "previous_sha256": [],
-      "policy": "managed"
-    },
-    {
       "path": "settings.json",
       "sha256": "078f7ce17f0f6ecb6390090500713023912c1599ffca79cabc9160f3a545511e",
       "previous_sha256": [],
       "policy": "preserve"
+    },
+    {
+      "path": "updater.bat",
+      "sha256": "23f8b2fd50f8d78424f3f86c94b708b744cecdff0494d85761643d1b935941b9",
+      "previous_sha256": [
+        "13f0476bd86a437277fc610afe7646c1be8963cce382015badfd8ac8101404ce"
+      ],
+      "policy": "managed"
+    }
+  ],
+  "retired_files": [
+    {
+      "path": ".agents/scripts/update_template.py",
+      "sha256": [
+        "d9e65accb0cd8882a36d2de93816c4fe6f6cbde048570453ab6f2138e9de0d00"
+      ]
+    },
+    {
+      "path": "Template-Manifest.json",
+      "sha256": [
+        "403ab20341f5374db8cfc2a86129ffc2ff18293988dfaeb0c12f00c8b569bdcc"
+      ]
+    },
+    {
+      "path": "Update-Template.bat",
+      "sha256": [
+        "13f0476bd86a437277fc610afe7646c1be8963cce382015badfd8ac8101404ce"
+      ]
     }
   ]
 }

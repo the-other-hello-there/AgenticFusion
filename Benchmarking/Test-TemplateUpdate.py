@@ -14,18 +14,19 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "AgenticFusionTemplate"
-SCRIPT = PACKAGE / ".agents/scripts/update_template.py"
+SCRIPT = PACKAGE / ".updater/update_template.py"
 HELPER = PACKAGE / ".agents/scripts/project-resources.ps1"
 spec = importlib.util.spec_from_file_location("template_updater", SCRIPT)
 update = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(update)
 
 
-def manifest(files, history=None):
+def manifest(files, history=None, retired=None):
     history = history or {}
     data = {"schema_version": 1, "repository": update.REPOSITORY, "hash_mode": "utf8-lf", "files": [
         {"path": name, "sha256": update.digest(value), "previous_sha256": history.get(name, []),
-         "policy": "preserve" if name in update.PRESERVE else "managed"} for name, value in sorted(files.items())]}
+         "policy": "preserve" if name in update.PRESERVE else "managed"} for name, value in sorted(files.items())],
+        "retired_files": [{"path": name, "sha256": hashes} for name, hashes in (retired or {}).items()]}
     raw = (json.dumps(data, indent=2) + "\n").encode()
     return raw, update.load_manifest(raw)
 
@@ -40,12 +41,9 @@ class UpdateChecks(unittest.TestCase):
         self.new = {"Agentic-Fusion.md": b"new instructions\n", ".agents/scripts/tool.py": b"new tool\n"}
         self.write(self.old)
         self.raw_old, self.manifest_old = manifest(self.old)
-        (self.project / update.MANIFEST).write_bytes(self.raw_old)
-        self.init = mock.patch.object(update, "initialize_resources", return_value=None)
-        self.init.start()
+        self.write({update.MANIFEST: self.raw_old})
 
     def tearDown(self):
-        self.init.stop()
         self.temp.cleanup()
 
     def write(self, files):
@@ -54,9 +52,9 @@ class UpdateChecks(unittest.TestCase):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(data)
 
-    def apply(self, files=None, check=False, history=None):
+    def apply(self, files=None, check=False, history=None, retired=None):
         files = self.new if files is None else files
-        raw, entries = manifest(files, history)
+        raw, entries = manifest(files, history, retired)
         return update.apply_update(self.project, raw, entries, files, "test-revision", check)
 
     def test_updates_pristine_files_preserves_project_settings_and_added_skills(self):
@@ -159,6 +157,7 @@ class UpdateChecks(unittest.TestCase):
         source = self.root / "source"
         source.mkdir()
         raw, _ = manifest(self.new)
+        (source / update.MANIFEST).parent.mkdir(parents=True)
         (source / update.MANIFEST).write_bytes(raw)
         for name, data in self.new.items():
             path = source / name
@@ -209,6 +208,57 @@ class UpdateChecks(unittest.TestCase):
                 os.rmdir(link)
             else:
                 link.unlink()
+
+    def test_old_layout_migrates_without_touching_project_content_or_old_recovery(self):
+        (self.project / update.MANIFEST).unlink()
+        old = {'Agentic-Fusion.md': self.old['Agentic-Fusion.md'], 'Update-Template.bat': b'old launcher',
+               '.agents/scripts/update_template.py': b'old updater'}
+        old_raw, _ = manifest(old)
+        self.write({**old, update.LEGACY_MANIFEST: old_raw,
+                    update.LEGACY_STATE: json.dumps({'schema_version': 1, 'files': {name: update.digest(data) for name, data in old.items()}}).encode(),
+                    'Project.md': b'Verified project context\r\n', 'Project/Context/loads.md': b'load evidence',
+                    'Project/.template-update/backups/old/recovery.txt': b'old recovery evidence'})
+        fresh = {'Agentic-Fusion.md': b'new instructions\n', 'updater.bat': b'new launcher', '.updater/update_template.py': b'new updater'}
+        retired = {name: [update.digest(data)] for name, data in {**old, update.LEGACY_MANIFEST: old_raw}.items() if name not in fresh}
+        report = self.apply(fresh, retired=retired)
+        self.assertEqual(report['status'], 'updated')
+        for name in retired:
+            self.assertFalse((self.project / name).exists(), name)
+        self.assertTrue((self.project / update.STATE).is_file())
+        self.assertTrue(report['backup'].startswith('.updater/backups/'))
+        self.assertEqual((self.project / 'Project.md').read_bytes(), b'Verified project context\r\n')
+        self.assertEqual((self.project / 'Project/Context/loads.md').read_bytes(), b'load evidence')
+        self.assertEqual((self.project / 'Project/.template-update/backups/old/recovery.txt').read_bytes(), b'old recovery evidence')
+        self.assertFalse(self.apply(fresh, check=True, retired=retired)['changes'])
+
+    def test_customized_retired_files_and_manifest_are_preserved(self):
+        (self.project / update.MANIFEST).unlink()
+        old_raw, _ = manifest(self.old)
+        custom_raw = old_raw.rstrip() + b'\n\n'
+        self.write({update.LEGACY_MANIFEST: custom_raw, 'Update-Template.bat': b'custom old launcher'})
+        retired = {update.LEGACY_MANIFEST: [update.digest(old_raw)], 'Update-Template.bat': [update.digest(b'old stock launcher')]}
+        report = self.apply(retired=retired)
+        self.assertEqual(report['status'], 'updated')
+        self.assertEqual((self.project / update.LEGACY_MANIFEST).read_bytes(), custom_raw)
+        self.assertEqual((self.project / 'Update-Template.bat').read_bytes(), b'custom old launcher')
+        self.assertIn(update.LEGACY_MANIFEST, report['preserved'])
+
+    def test_retirement_metadata_cannot_delete_project_or_updater_state(self):
+        for name in ['Project.md', 'Project/Context/evidence.md', update.STATE, update.MANIFEST]:
+            with self.subTest(path=name), self.assertRaises(update.UpdateError):
+                self.apply(retired={name: [update.digest(b'keep this')]})
+
+    def test_update_only_runs_keep_new_metadata_out_of_project_folder(self):
+        self.apply()
+        self.assertFalse((self.project / 'Project').exists())
+        self.assertFalse((self.project / 'Project.md').exists())
+        self.assertTrue((self.project / update.STATE).is_file())
+
+    def test_running_legacy_updater_blocks_migration(self):
+        legacy_lock = self.project / 'Project/.template-update/update.lock'
+        with update.file_lock(legacy_lock), self.assertRaises(update.UpdateError):
+            self.apply()
+        self.assertEqual((self.project / 'Agentic-Fusion.md').read_bytes(), self.old['Agentic-Fusion.md'])
 
 
 @unittest.skipUnless(os.name == "nt", "Windows project registration")

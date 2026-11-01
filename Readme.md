@@ -66,19 +66,21 @@ Read relevant project procedures through `Project.md` and keep their relative sc
 
 ### Update an existing project
 
-From the copied project folder, run `.\Update-Template.bat --check` to preview or `.\Update-Template.bat --project-dir .` to apply. The updater resolves [this repository's main branch](https://github.com/the-other-hello-there/AgenticFusion/tree/main) to one commit and verifies the downloaded template against its fingerprint manifest. It requires Python 3.11+ and PowerShell, without Git or additional packages. It runs only when requested; ordinary launch/setup never downloads template updates or restarts applications.
+From the copied project folder, run `.\updater.bat --check` to preview or `.\updater.bat --project-dir .` to apply. The updater resolves [this repository's main branch](https://github.com/the-other-hello-there/AgenticFusion/tree/main) to one commit and verifies the downloaded template against its fingerprint manifest. It requires Python 3.11+ and PowerShell, without Git or additional packages. It runs only when requested; ordinary launch/setup never downloads template updates or restarts applications.
 
-To upgrade a project that does not have the updater yet, download and extract the [main-branch ZIP](https://github.com/the-other-hello-there/AgenticFusion/archive/refs/heads/main.zip), open its inner `AgenticFusionTemplate/` folder, and run the updater there with the existing project's path. An offline source is also supported:
+To upgrade a project that lacks `updater.bat` or still uses `Update-Template.bat`, download and extract the [main-branch ZIP](https://github.com/the-other-hello-there/AgenticFusion/archive/refs/heads/main.zip), open its inner `AgenticFusionTemplate/` folder, and run the updater there with the existing project's path. An offline source is also supported:
 
 ```powershell
-.\Update-Template.bat --project-dir 'C:\Designs\Existing project' --check
-.\Update-Template.bat --project-dir 'C:\Designs\Existing project'
-.\Update-Template.bat --project-dir 'C:\Designs\Existing project' --source 'C:\Downloads\AgenticFusion-main\AgenticFusionTemplate'
+.\updater.bat --project-dir 'C:\Designs\Existing project' --check
+.\updater.bat --project-dir 'C:\Designs\Existing project'
+.\updater.bat --project-dir 'C:\Designs\Existing project' --source 'C:\Downloads\AgenticFusion-main\AgenticFusionTemplate'
 ```
 
-`Project.md`, project skills/context, CAD/exports and unknown added files stay outside upstream ownership. Existing printer definitions, slicing preferences and MCP/agent settings are preserved. Template resources update only when they match a recorded or known historical stock fingerprint. A locally edited template file or unknown path collision holds the entire update and stages incoming candidates under `Project/.template-update/incoming/`; it never silently overwrites those edits. Arbitrary code/instruction conflicts need a deliberate merge.
+The updater implementation, manifest and guide live in `.updater/`, beside the root `updater.bat`. New state, incoming candidates and recovery files stay in that folder. The fresh updater reads older ownership metadata and preserves old recovery history; see the [layout migration instructions](AgenticFusionTemplate/.updater/README.md#upgrade-the-former-updater-layout).
 
-Verified updates retain recovery copies and a journal under `Project/.template-update/backups/`. Write failures trigger rollback; concurrent user edits are retained and reported. `--check` does not change the project. Apply updates at a saved checkpoint and restart agent sessions afterward to reload their instructions and skills. See the [workspace/update procedure](AgenticFusionTemplate/.agents/skills/project-resources/references/workspace.md) for ownership, recovery and discovery details.
+`Project.md`, project skills/context, CAD/exports and unknown added files stay outside upstream ownership. Existing printer definitions, slicing preferences and MCP/agent settings are preserved. Template resources update only when they match a recorded or known historical stock fingerprint. A locally edited template file or unknown path collision holds the entire update and stages incoming candidates under `.updater/incoming/`; it never silently overwrites those edits. Arbitrary code/instruction conflicts need a deliberate merge.
+
+Verified updates retain recovery copies and a journal under `.updater/backups/`. Write failures trigger rollback; concurrent user edits are retained and reported. `--check` does not change the project. Apply updates at a saved checkpoint and restart agent sessions afterward to reload their instructions and skills. See the [updater guide](AgenticFusionTemplate/.updater/README.md) for ownership, recovery and discovery details.
 
 ### Optional slicer discovery and startup
 
@@ -138,7 +140,7 @@ If the server is disconnected, check that Fusion is running, its MCP option is e
 | File | Role |
 | --- | --- |
 | `Fusion-Claude.bat`, `Fusion-Codex.bat` | Shared first-run setup and Fusion startup; launch the chosen agent. |
-| `Update-Template.bat`, `Template-Manifest.json` | Verified upstream update entrypoint and template ownership/content fingerprints. |
+| `updater.bat`, `.updater/` | Update entrypoint; updater engine, manifest, guide and generated recovery/state files. |
 | `Agentic-Fusion.md` | Short, always-read shared design priorities, routing, memory placement, and size rules. |
 | `DfAM.md` | Optional protocol for a requested broad DfAM assessment; technical methods stay in the shared printing skill. |
 | `FDM-Slicing.md` | Shared FDM slicing rules and user-stated preferences, loaded on demand. |
@@ -156,7 +158,7 @@ If the server is disconnected, check that Fusion is running, its MCP option is e
 | `.agents/.claude-plugin/plugin.json` | Lets the Claude launcher load those same skill files as a local plugin. Codex discovers them in `.agents/skills/`. |
 | `.agents/scripts/task-complete.ps1`, `.agents/hooks/hooks.json`, `.codex/hooks.json` | One completion tone with agent-specific Stop hook declarations. |
 | `Project.md` | Created on first run for this design's verified context and decisions. |
-| `Project/` | Created in design copies for canonical project skills/context and updater recovery data, indexed by root `Project.md`. |
+| `Project/` | Created in design copies for canonical project skills/context, indexed by root `Project.md`. |
 
 Fusion designs remain in Fusion's documents. Do not put agent credentials or generated agent runtime folders into a project copy.
 
@@ -222,6 +224,7 @@ Only the inner template is distributed. Keep benchmark sandboxes, Python caches,
 
 ### v2026.11.01
 
+- Renamed the update command to `updater.bat`; older projects can migrate using the fresh updater while preserving project content and customized old files.
 - Added verified template updates that preserve project files/preferences and added skills, hold local edit conflicts, and retain recovery copies with rollback.
 - Added shared project-specific skill/context creation under `Project/`, indexed from root `Project.md` and discoverable in both agents through generated metadata entries.
 - Fixed startup registration for project paths supplied with a trailing directory separator.

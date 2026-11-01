@@ -211,11 +211,12 @@ function Write-ProjectJson {
 
 function Initialize-ProjectFiles {
     $portable = @(
-        'Fusion-Claude.bat', 'Fusion-Codex.bat', 'Update-Template.bat', 'Template-Manifest.json', 'Agentic-Fusion.md', 'DfAM.md', 'FDM-Slicing.md', 'Printers.json', 'CLAUDE.md', 'AGENTS.md', '.gitignore',
+        'Fusion-Claude.bat', 'Fusion-Codex.bat', 'updater.bat', 'Agentic-Fusion.md', 'DfAM.md', 'FDM-Slicing.md', 'Printers.json', 'CLAUDE.md', 'AGENTS.md', '.gitignore',
+        '.updater\Template-Manifest.json', '.updater\update_template.py', '.updater\.gitignore', '.updater\README.md',
         '.mcp.json', 'settings.json', '.codex\config.toml',
         '.codex\hooks.json', '.agents\hooks\hooks.json', '.agents\scripts\task-complete.ps1',
         '.agents\scripts\application-session.ps1',
-        '.agents\scripts\project-resources.ps1', '.agents\scripts\update_template.py',
+        '.agents\scripts\project-resources.ps1',
         '.agents\skills\project-resources\SKILL.md',
         '.agents\skills\project-resources\references\workspace.md',
         '.agents\.claude-plugin\plugin.json',
