@@ -1,0 +1,5 @@
+# Per-project updater state/recovery; shipped updater resources remain tracked.
+/state.json
+/update.lock
+/backups/
+/incoming/

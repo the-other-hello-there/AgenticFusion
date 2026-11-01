@@ -1,5 +1,6 @@
 """Audit the distributable package without launching apps or generating runtime files."""
 import ast
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -10,6 +11,23 @@ PACKAGE = Path(__file__).resolve().parents[1] / "AgenticFusionTemplate"
 
 
 class PortablePackageChecks(unittest.TestCase):
+    def test_update_manifest_matches_runtime_content_and_ownership(self):
+        manifest = json.loads((PACKAGE / '.updater/Template-Manifest.json').read_text(encoding='utf-8-sig'))
+        expected = {path.relative_to(PACKAGE).as_posix() for path in PACKAGE.rglob('*') if path.is_file()} - {'.updater/Template-Manifest.json'}
+        self.assertEqual({entry['path'] for entry in manifest['files']}, expected)
+        for entry in manifest['files']:
+            data = (PACKAGE / entry['path']).read_bytes().removeprefix(b'\xef\xbb\xbf').replace(b'\r\n', b'\n')
+            self.assertEqual(entry['sha256'], hashlib.sha256(data).hexdigest(), entry['path'])
+        preserved = {entry['path'] for entry in manifest['files'] if entry['policy'] == 'preserve'}
+        self.assertEqual(preserved, {'FDM-Slicing.md', 'Printers.json', 'Review-Policy.json', '.mcp.json', 'settings.json', '.codex/config.toml'})
+        retired = manifest.get('retired_files', [])
+        self.assertEqual(len({entry['path'].casefold() for entry in retired}), len(retired))
+        self.assertFalse({entry['path'] for entry in retired}.intersection(expected))
+        for entry in retired:
+            self.assertFalse((PACKAGE / entry['path']).exists(), entry['path'])
+            self.assertTrue(entry['sha256'])
+            self.assertTrue(all(re.fullmatch('[0-9a-f]{64}', value) for value in entry['sha256']))
+
     def test_package_matches_launcher_allowlist_and_excludes_generated_data(self):
         launcher = (PACKAGE / "Fusion-Claude.bat").read_text(encoding="utf-8-sig")
         manifest = re.search(r"\$portable = @\((.*?)\n\s*\)", launcher, re.S)

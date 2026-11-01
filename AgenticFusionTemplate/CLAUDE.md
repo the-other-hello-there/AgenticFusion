@@ -4,6 +4,8 @@ Run `Fusion-Claude.bat` to prepare the project and launch Claude Code with `sett
 
 Each session, read `Agentic-Fusion.md` and follow its shared context-loading and skill decision path. Do not import it or `Project.md` through `@` directives. The launcher loads `.agents/` as the `agentic-fusion` plugin, using the same physical skill files as Codex; load relevant references on demand, not all skills or slicing context at startup.
 
+Use root `Project.md` to discover project-specific resources. Create extra context and canonical skills under `Project/` through `project-resources`; the launcher syncs their native discovery entries. Read the canonical procedure before acting, with relative resources based on its `Project/skills/` folder.
+
 ## Claude Code tool and configuration rules
 
 - Load the Fusion tools via ToolSearch:

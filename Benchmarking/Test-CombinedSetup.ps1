@@ -32,6 +32,7 @@ try {
         New-Item -ItemType Directory -Path $project | Out-Null
         $projectFile = Join-Path $project 'Project.md'
         [System.IO.File]::WriteAllText($projectFile, "# Project: preserve verified context`n", $utf8)
+        $originalContext = [IO.File]::ReadAllText($projectFile)
         $slicingFile = Join-Path $project 'FDM-Slicing.md'
         [System.IO.File]::WriteAllText($slicingFile, "# FDM preferences`nUser preference: preserve this existing entry.`n", $utf8)
         $printerFile = Join-Path $project 'Printers.json'
@@ -50,7 +51,7 @@ try {
         $otherLauncher = if ($firstLauncher -eq 'Fusion-Claude.bat') { 'Fusion-Codex.bat' } else { 'Fusion-Claude.bat' }
         $localLauncher = [System.IO.File]::ReadAllText((Join-Path $templateDir $otherLauncher)).Replace('@echo off', "@echo off`r`nrem Preserve this project's launcher edits.")
         [System.IO.File]::WriteAllText((Join-Path $project $otherLauncher), $localLauncher, $utf8)
-        $expected = @{ 'Project.md' = (Get-FileHash -LiteralPath $projectFile).Hash }
+        $expected = @{}
         foreach ($sourceFile in Get-ChildItem -LiteralPath $templateDir -File -Recurse -Force) {
             $name = $sourceFile.FullName.Substring($templateDir.Length + 1)
             $target = Join-Path $project $name
@@ -58,6 +59,11 @@ try {
         }
         $bootstrap = & (Join-Path $sourceTemplate $firstLauncher) $project --setup-only 2>&1 | Out-String
         if ($LASTEXITCODE -ne 0 -or $bootstrap -match '(?m)^Error:') { throw "Bootstrap failed:`n$bootstrap" }
+        $updatedContext = [IO.File]::ReadAllText($projectFile)
+        if (-not $updatedContext.StartsWith($originalContext) -or $updatedContext -notmatch '\]\(Project/\)') {
+            throw 'Setup must preserve existing project context and append its project-resource index.'
+        }
+        $expected['Project.md'] = (Get-FileHash -LiteralPath $projectFile).Hash
         Assert-ProjectFiles $project $expected
         foreach ($name in $excludedFiles) {
             if (Test-Path -LiteralPath (Join-Path $project $name)) { throw "Setup copied excluded runtime data: $name" }
