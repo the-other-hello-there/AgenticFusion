@@ -1,0 +1,500 @@
+{
+  "schema_version": 1,
+  "repository": "the-other-hello-there/AgenticFusion",
+  "hash_mode": "utf8-lf",
+  "files": [
+    {
+      "path": ".agents/.claude-plugin/plugin.json",
+      "sha256": "9f7f0161c0e0842da250a05df83378800f42aa4671d2a6679f17c74fd3e8df4e",
+      "previous_sha256": [
+        "218d4a7ca23ca6f4c5742cca851a670a08e0d0d6383bd1f59db8e11e0cab02c6"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/hooks/hooks.json",
+      "sha256": "9ada85a8a5292cdb9532be83f768ad3c6db85cac2c117fd835037ad54649c262",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/scripts/application-session.ps1",
+      "sha256": "8e339bbfd5f7f9b05902fd0b62208aca6097dff7ee8a5260604c014897dd54ce",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/scripts/project-resources.ps1",
+      "sha256": "27930f534b809fa0e1f881939b58cedec1c3ad7ec7af30639116b0d281f97a26",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/scripts/task-complete.ps1",
+      "sha256": "d38bf0264f82fb4a83b5e85777adf67cce0be94b7361d35d061e9b9f6097d974",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/application-session/SKILL.md",
+      "sha256": "15e260aad3091a97052dd8c10fa08a8ac5ebaba36c7a5c0dcab36e91b9cf36b9",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/application-session/references/lifecycle.md",
+      "sha256": "bc9402fc82ee84bba79420db6399523ee49b28c943a757f0076158ef6c60ad74",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fdm-calibrate/SKILL.md",
+      "sha256": "1d953711c6f916152aa2e1c4f84575c71a925f894cc5d617aa92fec760fd9c59",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fdm-calibrate/references/practice.md",
+      "sha256": "91f205cfab8c022ea2b760e9bb43021e99c30e5647be6c3e8d8fe19301877253",
+      "previous_sha256": [
+        "ada0ae358a9c3e049a4dd143969b4f92d7ee41f4f335e74fea1f6348523d5c89"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-model/SKILL.md",
+      "sha256": "0364046e2d208a1eb60865d4e600cd065e7f295b25f4df29ec6359e406924896",
+      "previous_sha256": [
+        "210b433b976bee0eb47311341878df66170655e9c7dff0760b17204fcf7af91f"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-model/references/components.md",
+      "sha256": "9a3c768f22fd61bab19e6543d36c5180c508084b1e2d0394e7bc8d34e9d2f31f",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-model/references/design-and-assembly.md",
+      "sha256": "46c73851cc90a84051985d2c0b187f98855033438aaedbade38f032031c95326",
+      "previous_sha256": [
+        "776608ebe3b51e3059406bda479a6f0a38411cd644b784eb9803c5ba0bd3ec5e"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-model/references/fillets.md",
+      "sha256": "d1cc3c709684221cb58d9d31731589ec27cd125aca82983415ce1db185195ef6",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-model/references/helpers.md",
+      "sha256": "e98a98c4b08d6c1721cce2ca8dc3c4ed1fc2be9030307005aa3f4ed86deb9020",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-model/references/mcp.md",
+      "sha256": "fe1ddb4f910d18db095ec164133da6960a7619ac62577a663ace4f100c39692d",
+      "previous_sha256": [
+        "2ac84be3c261991e247bf54a2463084d0ea0862ce4104a83b81b0d67d2647728"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-model/references/sketches-and-features.md",
+      "sha256": "9dc8f438aacfdc222f32c34670fe0b2c6c98710054617f745990856046741012",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-model/references/timeline.md",
+      "sha256": "4243719b058cfafb2120cd39554c15b42caa1d85b28d0118013361d1da5880dc",
+      "previous_sha256": [
+        "dd112dcb4f7e5c8eb3b41cb428df42ce72645a66b16013ed4578f56c202ddae7"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-print/SKILL.md",
+      "sha256": "c11d33c7a8e208aa2733dbeb0e9dbecc2cd00046c79cc5b361513c382fdc70f0",
+      "previous_sha256": [
+        "45a024cb85c42179b3921779b16151d96888d5b580c3df0c25426af8642e91e2",
+        "74bc0d31d93fc59201f12e5eafc16740ab0342228f3fdeb4b397c99bf7c21b96",
+        "b95a4965cc41fef80696eb36c24e349c2ca8d8f64ce7b93b25b141389c178008",
+        "fe419caa3e38083ca7e46a5b18fb55d002a0061fe08710af1e8871f3dafb9a0e"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-print/references/improvement.md",
+      "sha256": "c1eeb1685216c65fbf36d7702689b53596a1d5b1ba776fa83858e3cc8f160f13",
+      "previous_sha256": [
+        "b8f949e1cd961f189c9398fca941e67a65a7caa4ce0ffcbfcb1c8f7a54d54deb",
+        "d0364a552a1ae231f42569f7535732f98cbd8a444eaa2b62e4c47c353302c650"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-print/references/mechanisms-and-fasteners.md",
+      "sha256": "f40d655ebbf64fc0266879fe02bdc0d40a8b8f347b91f00d084dee2e35cf17b5",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-print/references/orientation.md",
+      "sha256": "9ae95f6a8419e8fc5f1079162e9dc6a1cf216ccb73779810d4a6c644fea85465",
+      "previous_sha256": [
+        "29c219e7bb20967663807657151f6a29dfed015e2fc0a1208ddbdd249dfcbe23"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-print/references/overhangs-and-bed.md",
+      "sha256": "c0cc85db0d2bfbe302c4a65e579a55761b860253a0b20f352b4860caa84d2e52",
+      "previous_sha256": [
+        "061e9ef0d1beff8d49a07208f090e68218d231fb806b96f6bb5ed6b8614f3106"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-print/references/scan.md",
+      "sha256": "32aa8759e90e6cbd1e139b18c99f060605592935496b4a8b03d740013bb73f4c",
+      "previous_sha256": [
+        "4b4aa25cb439663b3634c1618a5a3ce353ab9c5fafaeb63892f0aa9f61f45151",
+        "54b453267f96d50d0aea871736015123aaced4d70b338ed5bb7cc7bcf8f69486"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-print/references/sizes-and-fits.md",
+      "sha256": "2dc06e5d27510663e0a33460141c42c1c89e3880c2ec3a1ad4a5958e27f73af0",
+      "previous_sha256": [
+        "bd106154d704286cdd061dabb801dd957f784aa312984ca485d7dedc7a9a4955"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-print/references/voids-and-cables.md",
+      "sha256": "5fe8cceeeaafaa0db16f450631341755b235ecd37829922f3f3fa868b3962711",
+      "previous_sha256": [
+        "8164e5513e9d835c38c5c5a0b0e87aec3cb449793aa930d6664ed9b46a0867d6"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-repair/SKILL.md",
+      "sha256": "0fcb3b4a0ccf8afa4f4e8c26682a8873a600fbf91ac21f63ba4ae54799417588",
+      "previous_sha256": [
+        "9ab96a489dcae45aa07a5bff17b1852b4faa608b4e676ef3055311bde31d8b74"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-repair/references/document-state.md",
+      "sha256": "5f9f5a4a0779bc5550353bdec55005c0ff2fed800491cf7002759842b755eb4a",
+      "previous_sha256": [
+        "04ba399d0f69ed3a6d385dab364c1b991dc4280058a1aea9e780ebb12c8ba81c"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-repair/references/geometry.md",
+      "sha256": "a968fa900dd98e39e4398c5251a08de156b0ada8a3bf93944cc0e50329b270d1",
+      "previous_sha256": [
+        "34c194c231275cbad5ec3ff273a34a7e6066bbc0331eaa9b20d4ba71680a1853"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/fusion-repair/references/mcp-and-save.md",
+      "sha256": "ac9c07852930d2ee09c25c4cd3fc492adf244f127f8d6498a3c892f0b08cc3ca",
+      "previous_sha256": [
+        "e2b7fa1bd61bc38e90052a9811f49e319b5f67c693b5cc46e2ace93538d2c3e3"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/orca-slice/SKILL.md",
+      "sha256": "36677e077cde981c4777db124758ae37a02e2f7a638b728a8d842382ab781512",
+      "previous_sha256": [
+        "65c2eaeb46a3fd61b4ac041e416a5d6a461b419f291fc05143e983825b0c1440",
+        "86d737ba287aef6100d952e0fb4083efb414962a6f9dacc1bf77e63177cfa4b7"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/orca-slice/references/layer-height.md",
+      "sha256": "47bf1e26c4f10bf269e9e88ba131e7f7a59e1c172957102f7e24a8ae551bc37e",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/orca-slice/references/settings.md",
+      "sha256": "a04d1a81149abca58bdad4e581ce9a909dda9896137753e3f12d5e43bed3a652",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/orca-slice/references/startup.md",
+      "sha256": "b05b1a0e37066c5f70aa0ed9801884552ab7bb8269e478bd9603d1ce3b61fb3c",
+      "previous_sha256": [
+        "5781d069b8903c86195048b16ee6ed9a25b834276a8476bb68101138ff46af36"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/orca-slice/references/support-materials.md",
+      "sha256": "1fd1755e7332600fcc467020b79a57e277863cb39cb37f5892eac2204bf8b67a",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/orca-slice/references/workflow.md",
+      "sha256": "bf0468079fe683a4c4f8dc6ebdfb3e65a097d2ed9fb0182d56ab5e58e47e1fd2",
+      "previous_sha256": [
+        "309b00d689bdec3d7e5e5498ba254ba396c45a1483bd28ca6a126cfd6171ab4e",
+        "ef1237e696f7bc2b1052e16377d1ebfa7281e1102138adbea0acf2b12ad81cdd"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/orca-slice/scripts/slicer.py",
+      "sha256": "ebc9843cddace35701a07ccb45542658637bcae207ab91ac622bc8a9ca065e69",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/orca-slice/scripts/slicer_windows.ps1",
+      "sha256": "f35b9bb78ae9dc5c000ccd6a0b37dc77814cbe70b91df0725b1c76f36d5d0779",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/orca-slice/scripts/start_orca.py",
+      "sha256": "5763d1ec4f0270d0523dab2f691311c2ace864741cfb38b2f93b46edc333e96d",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/printer-library/SKILL.md",
+      "sha256": "e10e411e6824afb159a8716759f9a4b095cdd7a36c5e6ee8c59e888f3a206b50",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/printer-library/assets/printer.example.json",
+      "sha256": "7cf6d662a007c368b9c958fcbd81fb147057fd3b2f2cf26bbc66633c454cf2ad",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/printer-library/references/format.md",
+      "sha256": "72a9efeb74e9cc47ee86b454b442a6f4241a5dbfd250e02d674bc1ee6ba32d52",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/printer-library/scripts/printer_library.py",
+      "sha256": "f49da575591fed124c809569dff748031c1ef4a28a218f55121c34eb7629d1c2",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/project-resources/SKILL.md",
+      "sha256": "e4de9fbecfe6e1896c508abbc6da00260221699468bd0103784d22129d53794c",
+      "previous_sha256": [
+        "43b3d8ee52ddbf29643a33573370a60c4764ac3c88bd594d60d4f043b34cb268"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/project-resources/references/workspace.md",
+      "sha256": "a07831dd595dac6b0a74ef176ac9acf9af91d7e48f0d9587f306a8f67857d0fe",
+      "previous_sha256": [
+        "8f95b7e7814da399b97d9964b4ea1a8b8249e7980d280c62f7b64e55d551925b"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/slice-compare/SKILL.md",
+      "sha256": "a8d317f31967b07ac6eda42c22f13cc17e6dbd9437497659debadfda1ee4549b",
+      "previous_sha256": [
+        "4c0903432587d5486afe842d5c3d6a6e117fbbba18a54cf2c0859b1dc6fd0cec"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".codex/config.toml",
+      "sha256": "e9247e4a889c4d1f5351dd178008650b97641f94ce5d20e602ea3f07aacae637",
+      "previous_sha256": [],
+      "policy": "preserve"
+    },
+    {
+      "path": ".codex/hooks.json",
+      "sha256": "b1f8b701d66a0d4c821aeb01762d6a7cdb6cfb7cd504666a2e9ba613c7948558",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "25423de2d8b7c687ec863e20097b52f540e515f7ea2c8f5ff2315cf049170265",
+      "previous_sha256": [
+        "607b8d253c1a9ffe47c693d6a054463e316b5d5ea38d83508f2f3fe4ffb5f12b"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": ".mcp.json",
+      "sha256": "83e7329a672e826a9322bf39f20e33ddb3f734de3cd8362f23da7d451f00faea",
+      "previous_sha256": [],
+      "policy": "preserve"
+    },
+    {
+      "path": ".updater/.gitignore",
+      "sha256": "131cb037ef12716a1daa056db5f44cc67d0532faba8f5228aed031272400a0d2",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".updater/README.md",
+      "sha256": "5cd1da2bb663529defa91f08f23e6122e0f6eede05feff03608be7098e1e6abf",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".updater/update_template.py",
+      "sha256": "a1b96e9eaa3b8309ce67b897f609650eceb1049504e0cb17e37d8c8a72ae71cb",
+      "previous_sha256": [
+        "d9e65accb0cd8882a36d2de93816c4fe6f6cbde048570453ab6f2138e9de0d00"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "7da0d3fc9f200afd93bd3929a3087ebde322cabfd1920e932d38c24a6a0907cb",
+      "previous_sha256": [
+        "07e5408cd137d856ded1cf1298c5f64492586696e9d72305ad13b87fab7e332b",
+        "0e2eae3a3699e7abf9f24b3135c18a136a2f76ab1d0c184732998726024c03a5",
+        "6c7a4d12efb5930191b6ee19ba634333035963f5d67b0c38709be29abbbc65a0",
+        "854d5c9323424030122586d645c11eee0ee730dab673e9d95b489fa7b24f35bf",
+        "a8e8cdd9610b24217ea1680ccf1adeee58f0c344ab7e1d12f09daa2ecdd73398",
+        "aa424a127a8f67cbaf77ad2fca5728f042261b8cf3cb8ee4bec24e181306c850",
+        "f5cb37fc36580947495eef5bef5d8e8f8cf38aa87665ec6ff919127d43bb6930"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": "Agentic-Fusion.md",
+      "sha256": "5a2543cee5d7f245ce150414f60028bb2f490e667fb4c1c18980abe94f030425",
+      "previous_sha256": [
+        "467e3e659ecfb5f35764652540294c114672685133bc617a0177a523be66ecab",
+        "47fc8c1d24322fa4ff87071ea6ebd1670a36b2a9de1c82c22fe9bf9883caf2c7",
+        "5aa0bd1d1366abb04cf13d84c34eefdc7c140a0ecad1aa249d3f530f26139b09",
+        "5c5426fe37dde87d09592fb8de973baa53d057ee23667c72283fbb1e2e13aaef",
+        "8e7602111e51e7085a84ab8d4682b74911de4be2624e4b25e0ffceb60f1579f8",
+        "d71b0bbcd5cc09781c8a0823f0e0cc2654b386ae81239902136086a476cbbcff",
+        "e71a52b6fd70e15094db804a9cc3febd715b7703ca37cd0c9e0a9ca133d19e02",
+        "ef5a31150ad255ac722eef6f83e03ee8dd113903b8b1c4b7b8e213318b9d0978"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256": "0adcaf7d8341aac828f18c22ae1de7bbd9c52e9746c30662c4a7e127c11ffbd9",
+      "previous_sha256": [
+        "6ecdbbda23b88701207d1111ec00fae637a89e8a9ef62577236e2bd7d9b28b62",
+        "713129c58b34aa9a2e717c385f82e37475fd86bcbe232980bb84a351bcf0e0d0",
+        "779be044afddc115963b818d951b70285ca704bf32950304cb20658782427776",
+        "97991e74a81ad86c207386268a6405bca8c06040622ecd46cfd04e92ca63c24f",
+        "a83456f563351e2d891ed5ae9855c6121612618a86f7141fb0a238670e8cc2a2",
+        "b490bcde7543471275d03116bbbaf0a2c05ececa49cc159f758b73d995010624",
+        "e1cd2217850653fe9816d32b1f254c246835e67a29045536887bc2cf949c443c"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": "DfAM.md",
+      "sha256": "d9e47903f52df5e2c5c44ffe466f39eb2a384a81a432ece7adad4686efa8ed53",
+      "previous_sha256": [
+        "8c7919e002aaefc56f56a8026287a8519031e16dd871ae626a3a1925d91aebfd",
+        "f673a951739ded40e04c6801abe302d2394f28b3b53628c6c3e04eb34a9c317d"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": "FDM-Slicing.md",
+      "sha256": "e69ea346b6af67512264f24342b6c6ccdbcebba2cb33b761c2579ab180106a66",
+      "previous_sha256": [
+        "d72d365607f534145f0c537f430a4b7175cf791122ad1a5f642961b9153c6bae",
+        "e8dc2d04b76ac1ae5cd58819e274c53a79189d679103bded7d7a60514401b6cc"
+      ],
+      "policy": "preserve"
+    },
+    {
+      "path": "Fusion-Claude.bat",
+      "sha256": "c58612e29ad25d2eac6c9220a9d368566c5cb489a4ee82c76c8fd563e83e63f9",
+      "previous_sha256": [
+        "28b9ba862f1bc999547c0a72137ceecf0fb5932a8d65d5f4c27da4544492bb77",
+        "44ee7e4e31d78e55fd903183118fea41580b3619766d074841eb762400f88f75",
+        "45dd541bd9dc1e49ea35d7b27fbddcd89cc08058733de13f9f1a029ec5035317",
+        "58130184a4f60bc1296017fea6a59c565d3aee8b0ce6990128b9b93c06dca44c",
+        "61d3a1435b50ea2dd005e81738a754ad9cc02b32e6804b1007b3e52d5e7cfaa8",
+        "686425b386dce330d0a46dc5bdf25ea01e0347aea940bedd75a579d9c352807c",
+        "7cfb51db3e17a6cf691181fc3dee4ccae2dd152d93b4c557f54669f3cda147d3",
+        "7d714eb5e2629ba1248242fb3a6692d149b375bfeed9dc8639569099e0ca7748",
+        "8ff7ee228cc74dae55e8278c65538b48770302a1b013be897c8e0376ec74f9ae",
+        "e0a85950f768283671c1c669bfd150491da6073944ce58f5d126fbb2407339bb"
+      ],
+      "policy": "managed"
+    },
+    {
+      "path": "Fusion-Codex.bat",
+      "sha256": "3bdca01d8cf5939398ce7f35f4a0857783a7edc9720b76b594f138aefa68df41",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": "Printers.json",
+      "sha256": "66646670ca5676952c53d578038201672ae9929802576e080596b47aae197f4c",
+      "previous_sha256": [],
+      "policy": "preserve"
+    },
+    {
+      "path": "settings.json",
+      "sha256": "078f7ce17f0f6ecb6390090500713023912c1599ffca79cabc9160f3a545511e",
+      "previous_sha256": [],
+      "policy": "preserve"
+    },
+    {
+      "path": "updater.bat",
+      "sha256": "23f8b2fd50f8d78424f3f86c94b708b744cecdff0494d85761643d1b935941b9",
+      "previous_sha256": [
+        "13f0476bd86a437277fc610afe7646c1be8963cce382015badfd8ac8101404ce"
+      ],
+      "policy": "managed"
+    }
+  ],
+  "retired_files": [
+    {
+      "path": ".agents/scripts/update_template.py",
+      "sha256": [
+        "d9e65accb0cd8882a36d2de93816c4fe6f6cbde048570453ab6f2138e9de0d00"
+      ]
+    },
+    {
+      "path": "Template-Manifest.json",
+      "sha256": [
+        "403ab20341f5374db8cfc2a86129ffc2ff18293988dfaeb0c12f00c8b569bdcc"
+      ]
+    },
+    {
+      "path": "Update-Template.bat",
+      "sha256": [
+        "13f0476bd86a437277fc610afe7646c1be8963cce382015badfd8ac8101404ce"
+      ]
+    }
+  ]
+}

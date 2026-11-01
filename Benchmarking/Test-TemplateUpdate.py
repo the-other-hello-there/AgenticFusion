@@ -1,0 +1,335 @@
+"""Exercise actual update planning/transactions and native project-skill adapters in disposable copies."""
+from contextlib import contextmanager
+import importlib.util
+import io
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import tempfile
+import unittest
+from unittest import mock
+import zipfile
+
+ROOT = Path(__file__).resolve().parents[1]
+PACKAGE = ROOT / "AgenticFusionTemplate"
+SCRIPT = PACKAGE / ".updater/update_template.py"
+HELPER = PACKAGE / ".agents/scripts/project-resources.ps1"
+spec = importlib.util.spec_from_file_location("template_updater", SCRIPT)
+update = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(update)
+
+
+def manifest(files, history=None, retired=None):
+    history = history or {}
+    data = {"schema_version": 1, "repository": update.REPOSITORY, "hash_mode": "utf8-lf", "files": [
+        {"path": name, "sha256": update.digest(value), "previous_sha256": history.get(name, []),
+         "policy": "preserve" if name in update.PRESERVE else "managed"} for name, value in sorted(files.items())],
+        "retired_files": [{"path": name, "sha256": hashes} for name, hashes in (retired or {}).items()]}
+    raw = (json.dumps(data, indent=2) + "\n").encode()
+    return raw, update.load_manifest(raw)
+
+
+class UpdateChecks(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="template update ")
+        self.root = Path(self.temp.name)
+        self.project = self.root / "Project with spaces"
+        self.project.mkdir()
+        self.old = {"Agentic-Fusion.md": b"original instructions\n", ".agents/scripts/tool.py": b"old tool\n"}
+        self.new = {"Agentic-Fusion.md": b"new instructions\n", ".agents/scripts/tool.py": b"new tool\n"}
+        self.write(self.old)
+        self.raw_old, self.manifest_old = manifest(self.old)
+        self.write({update.MANIFEST: self.raw_old})
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def write(self, files):
+        for name, data in files.items():
+            path = self.project / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+
+    def apply(self, files=None, check=False, history=None, retired=None):
+        files = self.new if files is None else files
+        raw, entries = manifest(files, history, retired)
+        return update.apply_update(self.project, raw, entries, files, "test-revision", check)
+
+    def test_updates_pristine_files_preserves_project_settings_and_added_skills(self):
+        personal = {"Project.md": b"verified dimensions and decisions", "Project/Context/loads.md": b"measured loads",
+                    "Project/skills/project-fit/SKILL.md": b"canonical procedure", ".agents/skills/extra/SKILL.md": b"existing project skill",
+                    "Printers.json": b'{"printers":["mine"]}', "FDM-Slicing.md": b"user preferences", ".mcp.json": b"custom MCP",
+                    "settings.json": b"custom settings", ".codex/config.toml": b"custom TOML", "Output CAD/part.step": b"CAD"}
+        self.write(personal)
+        source = dict(self.new, **{key: b"stock defaults" for key in update.PRESERVE})
+        report = self.apply(source)
+        self.assertEqual(report["status"], "updated")
+        for name, data in personal.items():
+            self.assertEqual((self.project / name).read_bytes(), data, name)
+        for name, data in self.new.items():
+            self.assertEqual((self.project / name).read_bytes(), data)
+        self.assertTrue((self.project / report["backup"] / "Agentic-Fusion.md").is_file())
+        self.assertEqual(self.apply(source)["changes"], [])
+
+    def test_local_edits_hold_the_whole_update_and_stage_candidates(self):
+        self.write({"Agentic-Fusion.md": b"project-specific rule\n"})
+        report = self.apply()
+        self.assertEqual(report["status"], "conflicts")
+        self.assertEqual((self.project / "Agentic-Fusion.md").read_bytes(), b"project-specific rule\n")
+        self.assertEqual((self.project / ".agents/scripts/tool.py").read_bytes(), self.old[".agents/scripts/tool.py"])
+        self.assertEqual((self.project / report["incoming"] / "Agentic-Fusion.md").read_bytes(), self.new["Agentic-Fusion.md"])
+        self.assertEqual((self.project / update.MANIFEST).read_bytes(), self.raw_old)
+
+    def test_unknown_file_collision_is_preserved(self):
+        self.write({".agents/skills/new/SKILL.md": b"my custom skill"})
+        source = dict(self.new, **{".agents/skills/new/SKILL.md": b"new upstream skill"})
+        self.assertIn(".agents/skills/new/SKILL.md", self.apply(source)["conflicts"])
+        self.assertEqual((self.project / ".agents/skills/new/SKILL.md").read_bytes(), b"my custom skill")
+
+    def test_legacy_adoption_requires_known_stock_fingerprints(self):
+        (self.project / update.MANIFEST).unlink()
+        fingerprints = {name: [update.digest(value)] for name, value in self.old.items()}
+        self.assertEqual(self.apply(history=fingerprints)["status"], "updated")
+        self.write({"Agentic-Fusion.md": b"private modification"})
+        self.assertEqual(self.apply(history=fingerprints)["status"], "conflicts")
+
+    def test_preview_is_read_only_and_line_endings_are_not_a_conflict(self):
+        self.write({"Agentic-Fusion.md": b"\xef\xbb\xbforiginal instructions\r\n"})
+        before = {p.relative_to(self.project): p.read_bytes() for p in self.project.rglob("*") if p.is_file()}
+        report = self.apply(check=True)
+        self.assertFalse(report["conflicts"])
+        after = {p.relative_to(self.project): p.read_bytes() for p in self.project.rglob("*") if p.is_file()}
+        self.assertEqual(before, after)
+        self.assertFalse((self.project / "Project").exists())
+
+    def test_only_owned_unchanged_obsolete_files_are_removed(self):
+        self.write({".agents/scripts/tool.py": b"project changed obsolete tool"})
+        self.apply({"Agentic-Fusion.md": b"new instructions\n"})
+        self.assertEqual((self.project / ".agents/scripts/tool.py").read_bytes(), b"project changed obsolete tool")
+        self.write({".agents/scripts/retired.py": b"retire me"})
+        self.apply({"Agentic-Fusion.md": b"new instructions\n", ".agents/scripts/retired.py": b"retire me"})
+        report = self.apply({"Agentic-Fusion.md": b"new instructions\n"})
+        self.assertFalse((self.project / ".agents/scripts/retired.py").exists())
+        self.assertEqual((self.project / report["backup"] / ".agents/scripts/retired.py").read_bytes(), b"retire me")
+
+    def test_write_failure_rolls_back_updated_files_and_manifest(self):
+        original = update.atomic_write
+        def fail(path, data):
+            if path == self.project / "Agentic-Fusion.md" and data == self.new["Agentic-Fusion.md"]:
+                raise PermissionError("simulated write failure")
+            original(path, data)
+        with mock.patch.object(update, "atomic_write", side_effect=fail), self.assertRaisesRegex(update.UpdateError, "recovery copies"):
+            self.apply()
+        for name, data in self.old.items():
+            self.assertEqual((self.project / name).read_bytes(), data)
+        self.assertEqual((self.project / update.MANIFEST).read_bytes(), self.raw_old)
+
+    def test_rollback_preserves_a_concurrent_user_edit(self):
+        original = update.atomic_write
+        def fail(path, data):
+            if path == self.project / "Agentic-Fusion.md" and data == self.new["Agentic-Fusion.md"]:
+                (self.project / ".agents/scripts/tool.py").write_bytes(b"user edited during update")
+                raise PermissionError("simulated concurrent failure")
+            original(path, data)
+        with mock.patch.object(update, "atomic_write", side_effect=fail), self.assertRaisesRegex(update.UpdateError, "tool.py"):
+            self.apply()
+        self.assertEqual((self.project / ".agents/scripts/tool.py").read_bytes(), b"user edited during update")
+
+    def test_bad_manifest_paths_and_case_collisions_are_rejected(self):
+        for name in ["../Project.md", "Project.md", "Project/skills/x/SKILL.md", "/absolute.md", "C:/escape.md", ".agents/../escape.md", ".agents/auth.json", ".agents/NUL/tool.py"]:
+            with self.subTest(name=name), self.assertRaises(update.UpdateError):
+                manifest({name: b"not managed"})
+        raw, _ = manifest(self.new)
+        value = json.loads(raw)
+        value["files"].append(dict(value["files"][0]))
+        with self.assertRaises(update.UpdateError):
+            update.load_manifest(json.dumps(value).encode())
+
+    def test_exclusive_update_lock_prevents_overlapping_writes(self):
+        with update.update_lock(self.project), self.assertRaises(update.UpdateError):
+            self.apply()
+        self.assertEqual((self.project / 'Agentic-Fusion.md').read_bytes(), self.old['Agentic-Fusion.md'])
+        self.assertEqual(self.apply()['status'], 'updated')
+
+    def test_offline_source_hash_failure_prevents_any_update(self):
+        source = self.root / "source"
+        source.mkdir()
+        raw, _ = manifest(self.new)
+        (source / update.MANIFEST).parent.mkdir(parents=True)
+        (source / update.MANIFEST).write_bytes(raw)
+        for name, data in self.new.items():
+            path = source / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data + b"tampered")
+        with self.assertRaisesRegex(update.UpdateError, "verification"):
+            update.get_source(source)
+        self.assertEqual((self.project / "Agentic-Fusion.md").read_bytes(), self.old["Agentic-Fusion.md"])
+
+    def test_github_download_pins_archive_to_commit_and_rejects_missing_manifest(self):
+        revision = "a" * 40
+        raw, _ = manifest(self.new)
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w") as archive:
+            prefix = f"AgenticFusion-{revision}/AgenticFusionTemplate/"
+            archive.writestr(prefix + update.MANIFEST, raw)
+            for name, data in self.new.items():
+                archive.writestr(prefix + name, data)
+        with mock.patch.object(update, "download", side_effect=[json.dumps({"sha": revision}).encode(), buffer.getvalue()]) as request:
+            result = update.get_source()
+            self.assertEqual(result[3], revision)
+            self.assertEqual(result[2], self.new)
+            self.assertTrue(request.call_args_list[1].args[0].endswith("/" + revision))
+        empty = io.BytesIO()
+        with zipfile.ZipFile(empty, "w"):
+            pass
+        with mock.patch.object(update, "download", side_effect=[json.dumps({"sha": revision}).encode(), empty.getvalue()]), self.assertRaisesRegex(update.UpdateError, "Publish"):
+            update.get_source()
+
+    def test_filesystem_links_are_rejected_without_mutating_targets(self):
+        external = self.root / "outside"
+        external.mkdir()
+        (external / "tool.py").write_bytes(b"external work")
+        shutil.rmtree(self.project / ".agents/scripts")
+        link = self.project / ".agents/scripts"
+        if os.name == "nt":
+            script = self.root / "junction.ps1"
+            script.write_text("param($Link,$Target)\nNew-Item -ItemType Junction -Path $Link -Target $Target | Out-Null", encoding="utf-8")
+            subprocess.run(["powershell.exe", "-NoProfile", "-File", str(script), str(link), str(external)], check=True, capture_output=True)
+        else:
+            link.symlink_to(external, target_is_directory=True)
+        try:
+            with self.assertRaisesRegex(update.UpdateError, "link"):
+                self.apply()
+            self.assertEqual((external / "tool.py").read_bytes(), b"external work")
+        finally:
+            if os.name == "nt":
+                os.rmdir(link)
+            else:
+                link.unlink()
+
+    def test_old_layout_migrates_without_touching_project_content_or_old_recovery(self):
+        (self.project / update.MANIFEST).unlink()
+        old = {'Agentic-Fusion.md': self.old['Agentic-Fusion.md'], 'Update-Template.bat': b'old launcher',
+               '.agents/scripts/update_template.py': b'old updater'}
+        old_raw, _ = manifest(old)
+        self.write({**old, update.LEGACY_MANIFEST: old_raw,
+                    update.LEGACY_STATE: json.dumps({'schema_version': 1, 'files': {name: update.digest(data) for name, data in old.items()}}).encode(),
+                    'Project.md': b'Verified project context\r\n', 'Project/Context/loads.md': b'load evidence',
+                    'Project/.template-update/backups/old/recovery.txt': b'old recovery evidence'})
+        fresh = {'Agentic-Fusion.md': b'new instructions\n', 'updater.bat': b'new launcher', '.updater/update_template.py': b'new updater'}
+        retired = {name: [update.digest(data)] for name, data in {**old, update.LEGACY_MANIFEST: old_raw}.items() if name not in fresh}
+        report = self.apply(fresh, retired=retired)
+        self.assertEqual(report['status'], 'updated')
+        for name in retired:
+            self.assertFalse((self.project / name).exists(), name)
+        self.assertTrue((self.project / update.STATE).is_file())
+        self.assertTrue(report['backup'].startswith('.updater/backups/'))
+        self.assertEqual((self.project / 'Project.md').read_bytes(), b'Verified project context\r\n')
+        self.assertEqual((self.project / 'Project/Context/loads.md').read_bytes(), b'load evidence')
+        self.assertEqual((self.project / 'Project/.template-update/backups/old/recovery.txt').read_bytes(), b'old recovery evidence')
+        self.assertFalse(self.apply(fresh, check=True, retired=retired)['changes'])
+
+    def test_customized_retired_files_and_manifest_are_preserved(self):
+        (self.project / update.MANIFEST).unlink()
+        old_raw, _ = manifest(self.old)
+        custom_raw = old_raw.rstrip() + b'\n\n'
+        self.write({update.LEGACY_MANIFEST: custom_raw, 'Update-Template.bat': b'custom old launcher'})
+        retired = {update.LEGACY_MANIFEST: [update.digest(old_raw)], 'Update-Template.bat': [update.digest(b'old stock launcher')]}
+        report = self.apply(retired=retired)
+        self.assertEqual(report['status'], 'updated')
+        self.assertEqual((self.project / update.LEGACY_MANIFEST).read_bytes(), custom_raw)
+        self.assertEqual((self.project / 'Update-Template.bat').read_bytes(), b'custom old launcher')
+        self.assertIn(update.LEGACY_MANIFEST, report['preserved'])
+
+    def test_retirement_metadata_cannot_delete_project_or_updater_state(self):
+        for name in ['Project.md', 'Project/Context/evidence.md', update.STATE, update.MANIFEST]:
+            with self.subTest(path=name), self.assertRaises(update.UpdateError):
+                self.apply(retired={name: [update.digest(b'keep this')]})
+
+    def test_update_only_runs_keep_new_metadata_out_of_project_folder(self):
+        self.apply()
+        self.assertFalse((self.project / 'Project').exists())
+        self.assertFalse((self.project / 'Project.md').exists())
+        self.assertTrue((self.project / update.STATE).is_file())
+
+    def test_running_legacy_updater_blocks_migration(self):
+        legacy_lock = self.project / 'Project/.template-update/update.lock'
+        with update.file_lock(legacy_lock), self.assertRaises(update.UpdateError):
+            self.apply()
+        self.assertEqual((self.project / 'Agentic-Fusion.md').read_bytes(), self.old['Agentic-Fusion.md'])
+
+
+@unittest.skipUnless(os.name == "nt", "Windows project registration")
+class ProjectResourceChecks(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="project resources ")
+        self.root = Path(self.temp.name)
+        (self.root / "Project.md").write_text("# Existing design\n\nVerified dimensions: 42 mm.\n", encoding="utf-8")
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def run_helper(self, *arguments):
+        result = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", str(HELPER),
+                                 "-ProjectDir", str(self.root), *arguments], capture_output=True, text=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return result
+
+    def test_new_skill_is_canonical_in_project_and_discoverable_without_copying_body(self):
+        self.run_helper("-Action", "NewSkill", "-Name", "fits", "-Description", "Check this design's measured interfaces.")
+        canonical = self.root / "Project/skills/project-fits/SKILL.md"
+        text = canonical.read_text(encoding="utf-8").replace("Write the verified project-specific procedure here before using this skill.", "Measure the 42 mm interface and compare the saved tolerance.")
+        canonical.write_text(text, encoding="utf-8")
+        note = self.root / "Project/Context/fit evidence.md"
+        note.write_text("Verified measurements.", encoding="utf-8")
+        self.run_helper("-Action", "Sync")
+        adapter = self.root / ".agents/skills/project-fits/SKILL.md"
+        entry = adapter.read_text(encoding="utf-8")
+        self.assertIn("name: project-fits", entry)
+        self.assertIn("../../../Project/skills/project-fits/SKILL.md", entry)
+        self.assertNotIn("Measure the 42 mm", entry)
+        index = (self.root / "Project.md").read_text(encoding="utf-8")
+        self.assertTrue(index.startswith("# Existing design\n\nVerified dimensions: 42 mm.\n"))
+        self.assertIn("Project/skills/project-fits/SKILL.md", index)
+        self.assertIn("Project/Context/fit%20evidence.md", index)
+        self.run_helper("-Action", "Sync")
+        self.assertEqual((self.root / "Project.md").read_text(encoding="utf-8"), index)
+
+    def test_existing_added_skill_and_modified_adapter_are_preserved(self):
+        adapter = self.root / ".agents/skills/project-fits/SKILL.md"
+        adapter.parent.mkdir(parents=True)
+        adapter.write_text("Existing unrelated skill", encoding="utf-8")
+        self.run_helper("-Action", "NewSkill", "-Name", "fits", "-Description", "Test interfaces.")
+        self.assertEqual(adapter.read_text(encoding="utf-8"), "Existing unrelated skill")
+        adapter.unlink()
+        self.run_helper("-Action", "Sync")
+        adapter.write_text("Manually customized adapter", encoding="utf-8")
+        self.run_helper("-Action", "Sync")
+        self.assertEqual(adapter.read_text(encoding="utf-8"), "Manually customized adapter")
+
+    def test_deleting_canonical_removes_only_unchanged_generated_adapter(self):
+        self.run_helper("-Action", "NewSkill", "-Name", "fits", "-Description", "Test interfaces.")
+        canonical = self.root / "Project/skills/project-fits/SKILL.md"
+        adapter = self.root / ".agents/skills/project-fits/SKILL.md"
+        extra = adapter.parent / "user-note.txt"
+        extra.write_text("Preserve this addition", encoding="utf-8")
+        canonical.unlink()
+        self.run_helper("-Action", "Sync")
+        self.assertFalse(adapter.exists())
+        self.assertEqual(extra.read_text(), "Preserve this addition")
+
+    def test_index_append_preserves_existing_encoding_and_trailing_content(self):
+        before = '# Existing design\r\n\r\nVerified text with trailing spaces.  \r\n\r\n'.encode('utf-16')
+        (self.root / 'Project.md').write_bytes(before)
+        self.run_helper('-Action', 'Initialize')
+        after = (self.root / 'Project.md').read_bytes()
+        self.assertTrue(after.startswith(before))
+        self.assertIn('](Project/)', after.decode('utf-16'))
+        self.run_helper('-Action', 'Initialize')
+        self.assertEqual((self.root / 'Project.md').read_bytes(), after)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

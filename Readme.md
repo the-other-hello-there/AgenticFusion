@@ -10,7 +10,7 @@ A portable Windows folder for Autodesk Fusion's local MCP server with **Claude C
 | Autodesk Fusion desktop application, signed in, with its local MCP server enabled | CAD inspection, modeling and verification | Install Fusion and enable its MCP server as described below. |
 | Claude Code or Codex CLI, with an account for the selected agent | Agent sessions | Install either or both. The corresponding launcher offers its official installer when the selected CLI is missing, then opens the agent for sign-in. |
 | Internet access | Agent installation/sign-in/services and Fusion cloud access | Fusion's local MCP connection uses loopback HTTP; the applications' online services are separate. |
-| Python 3.11 or newer, with the Windows `py` launcher for the documented commands | Optional slicing/printer-library helpers and Python maintenance checks | Ensure `py -3` selects a supported interpreter. The shipped Python helpers use only the standard library. |
+| Python 3.11 or newer, with the Windows `py` launcher for the documented commands | Optional template updates, slicing/printer-library helpers and Python maintenance checks | Ensure `py -3` selects a supported interpreter. The shipped Python helpers use only the standard library. |
 | An installed OrcaSlicer variant or Bambu Studio, plus verified printer/nozzle/material profiles | Optional FDM slicing and UI preview | Select from discovered installations. Headless slicing depends on the chosen build's CLI capabilities. |
 | A slicer build exposing a compatible MCP server | Optional OrcaMCP tools | Required only for that integration path; ordinary discovery and CLI slicing use the installed slicer's own capabilities. |
 
@@ -44,9 +44,43 @@ Both agents play a short Windows tone when their main agent finishes a response.
 
 Drag an existing project folder onto either template launcher to copy missing files, including both launchers, without replacing context. In a copied folder, run `./Fusion-Claude.bat --setup-only` or `./Fusion-Codex.bat --setup-only` to prepare files without opening Fusion or an agent, prompting for installation or downloading software; both use the same setup routine.
 
-Setup preserves existing launchers and instruction files and copies missing skills only. Merge template updates while preserving project-specific edits. Keep `CLAUDE.md` limited to startup and routing instructions: full-file imports such as `@Project.md` and `@Agentic-Fusion.md` can exceed the instruction budget. If `Project.md` is large, keep current facts there and index needed history in `Project-History/` per the shared cleanup rule.
+Setup preserves existing launchers and instruction files and copies missing skills only; use the updater below to refresh existing template resources. Keep `CLAUDE.md` limited to startup and routing instructions: full-file imports such as `@Project.md` and `@Agentic-Fusion.md` can exceed the instruction budget. Keep current facts in `Project.md` and index deeper context/history under `Project/Context/`; preserve existing history folders and their links.
 
 The launcher warns above the 40,000-character `Project.md` target. For Claude, it detects legacy full-file imports and stops before their combined text exceeds the observed 150,000-character instruction limit. It never rewrites existing context.
+
+### Project-specific skills and context
+
+Either agent may create useful project-specific skills and context as work requires. Keep their authored content under `Project/`: canonical skill folders in `Project/skills/project-<name>/`, notes/evidence in `Project/Context/`, and deeper history in `Project/Context/History/`. Root `Project.md` stays the current-state record and navigation index, with links to those resources. Existing CAD/export folders and project-added files/skills remain in place.
+
+The launchers initialize the project-resource index and sync small discovery entries in `.agents/skills/`, so Codex and Claude's existing `agentic-fusion` plugin can discover the same canonical project procedures. The generated entries mirror frontmatter and link to `Project/skills/`; they do not copy the procedure. Python, symlink privileges and global agent configuration changes are unnecessary for registration. Existing or manually edited entries are preserved on name collisions.
+
+Use the shared `project-resources` skill, or run:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .agents/scripts/project-resources.ps1 -Action NewSkill -Name interface-checks -Description 'Verify this design-specific interface and its measured fit.'
+# Complete the procedure in Project/skills/project-interface-checks/SKILL.md, then:
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .agents/scripts/project-resources.ps1 -Action Sync
+```
+
+Read relevant project procedures through `Project.md` and keep their relative scripts/references based on the canonical skill folder. Restart the agent if its skill catalog has not refreshed. New context files should also be linked from `Project.md`; `Sync` adds missing links for `Project/Context/` files.
+
+### Update an existing project
+
+From the copied project folder, run `.\updater.bat --check` to preview or `.\updater.bat --project-dir .` to apply. The updater resolves [this repository's main branch](https://github.com/the-other-hello-there/AgenticFusion/tree/main) to one commit and verifies the downloaded template against its fingerprint manifest. It requires Python 3.11+ and PowerShell, without Git or additional packages. It runs only when requested; ordinary launch/setup never downloads template updates or restarts applications.
+
+To upgrade a project that lacks `updater.bat` or still uses `Update-Template.bat`, download and extract the [main-branch ZIP](https://github.com/the-other-hello-there/AgenticFusion/archive/refs/heads/main.zip), open its inner `AgenticFusionTemplate/` folder, and run the updater there with the existing project's path. An offline source is also supported:
+
+```powershell
+.\updater.bat --project-dir 'C:\Designs\Existing project' --check
+.\updater.bat --project-dir 'C:\Designs\Existing project'
+.\updater.bat --project-dir 'C:\Designs\Existing project' --source 'C:\Downloads\AgenticFusion-main\AgenticFusionTemplate'
+```
+
+The updater implementation, manifest and guide live in `.updater/`, beside the root `updater.bat`. New state, incoming candidates and recovery files stay in that folder. The fresh updater reads older ownership metadata and preserves old recovery history; see the [layout migration instructions](AgenticFusionTemplate/.updater/README.md#upgrade-the-former-updater-layout).
+
+`Project.md`, project skills/context, CAD/exports and unknown added files stay outside upstream ownership. Existing printer definitions, slicing preferences and MCP/agent settings are preserved. Template resources update only when they match a recorded or known historical stock fingerprint. A locally edited template file or unknown path collision holds the entire update and stages incoming candidates under `.updater/incoming/`; it never silently overwrites those edits. Arbitrary code/instruction conflicts need a deliberate merge.
+
+Verified updates retain recovery copies and a journal under `.updater/backups/`. Write failures trigger rollback; concurrent user edits are retained and reported. `--check` does not change the project. Apply updates at a saved checkpoint and restart agent sessions afterward to reload their instructions and skills. See the [updater guide](AgenticFusionTemplate/.updater/README.md) for ownership, recovery and discovery details.
 
 ### Optional slicer discovery and startup
 
@@ -106,6 +140,7 @@ If the server is disconnected, check that Fusion is running, its MCP option is e
 | File | Role |
 | --- | --- |
 | `Fusion-Claude.bat`, `Fusion-Codex.bat` | Shared first-run setup and Fusion startup; launch the chosen agent. |
+| `updater.bat`, `.updater/` | Update entrypoint; updater engine, manifest, guide and generated recovery/state files. |
 | `Agentic-Fusion.md` | Short, always-read shared design priorities, routing, memory placement, and size rules. |
 | `DfAM.md` | Optional protocol for a requested broad DfAM assessment; technical methods stay in the shared printing skill. |
 | `FDM-Slicing.md` | Shared FDM slicing rules and user-stated preferences, loaded on demand. |
@@ -114,6 +149,7 @@ If the server is disconnected, check that Fusion is running, its MCP option is e
 | `.mcp.json`, `settings.json` | Claude Code project MCP and agent settings. |
 | `.codex/config.toml` | Codex project MCP connection. |
 | `.agents/skills/fusion-model/` | Shared modeling skill with task-specific Fusion API, assembly, timeline, sketch, feature, and verification references. |
+| `.agents/skills/project-resources/` | Project skill/context creation, native discovery registration and conflict-safe template updates. |
 | `.agents/skills/fusion-print/` | Shared printing skill with references loaded by task: design rules, orientation, scan, and improvement. |
 | `.agents/skills/fusion-repair/` | Shared repair skill with references loaded by failure type. |
 | `.agents/skills/orca-slice/` | Shared slicer discovery/choice, desktop/Store opening, CLI slicing and optional OrcaMCP startup. |
@@ -122,6 +158,7 @@ If the server is disconnected, check that Fusion is running, its MCP option is e
 | `.agents/.claude-plugin/plugin.json` | Lets the Claude launcher load those same skill files as a local plugin. Codex discovers them in `.agents/skills/`. |
 | `.agents/scripts/task-complete.ps1`, `.agents/hooks/hooks.json`, `.codex/hooks.json` | One completion tone with agent-specific Stop hook declarations. |
 | `Project.md` | Created on first run for this design's verified context and decisions. |
+| `Project/` | Created in design copies for canonical project skills/context, indexed by root `Project.md`. |
 
 Fusion designs remain in Fusion's documents. Do not put agent credentials or generated agent runtime folders into a project copy.
 
@@ -187,6 +224,10 @@ Only the inner template is distributed. Keep benchmark sandboxes, Python caches,
 
 ### v2026.11.01
 
+- Renamed the update command to `updater.bat`; older projects can migrate using the fresh updater while preserving project content and customized old files.
+- Added verified template updates that preserve project files/preferences and added skills, hold local edit conflicts, and retain recovery copies with rollback.
+- Added shared project-specific skill/context creation under `Project/`, indexed from root `Project.md` and discoverable in both agents through generated metadata entries.
+- Fixed startup registration for project paths supplied with a trailing directory separator.
 - Each launcher offers to install its selected missing agent CLI after explicit approval, refreshes PATH, verifies `--version` and continues the same startup. Declining or an installation failure stops before Fusion opens; setup-only never prompts or installs.
 - Launcher discovery uses native/npm application shims and recognizes a custom `CODEX_INSTALL_DIR`.
 
