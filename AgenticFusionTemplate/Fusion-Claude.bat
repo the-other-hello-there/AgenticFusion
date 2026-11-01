@@ -5,6 +5,7 @@ rem  - Double-click: uses the folder this file is in as the project folder
 rem  - Or drag a project folder onto this file to use that folder instead
 rem  - Fusion-Codex.bat calls this file with --codex to launch Codex
 rem  - Fixes PATH if the selected agent can't be found
+rem  - Offers the selected CLI's official installer only with user permission
 rem  - Initializes missing project files and ensures the Fusion MCP settings
 rem  - Use --setup-only to initialize without opening Fusion or an agent
 rem  Edit the settings in the PowerShell section below if needed.
@@ -90,30 +91,116 @@ function Add-ToPath {
     if (-not $inProc) { $env:PATH = "$env:PATH;$Dir" }
 }
 
-function Confirm-Claude {
-    if (Get-Command claude -ErrorAction SilentlyContinue) { return $true }
-    Write-Host "'claude' not found on PATH - looking for it..." -ForegroundColor Yellow
-    $candidates = @("$env:USERPROFILE\.local\bin", "$env:APPDATA\npm")
-    foreach ($dir in $candidates) {
-        if ((Test-Path -LiteralPath "$dir\claude.exe") -or (Test-Path -LiteralPath "$dir\claude.cmd")) {
-            Add-ToPath -Dir $dir
-            if (Get-Command claude -ErrorAction SilentlyContinue) { return $true }
-        }
+function Get-AgentInstallInfo {
+    param([ValidateSet('claude','codex')][string]$Agent)
+    $directories = @()
+    if ($Agent -eq 'claude') {
+        if ($env:USERPROFILE) { $directories += Join-Path $env:USERPROFILE '.local\bin' }
+        $label = 'Claude Code'
+        $installerUrl = 'https://claude.ai/install.ps1'
+        $helpUrl = 'https://code.claude.com/docs/en/setup'
+    } else {
+        if ($env:CODEX_INSTALL_DIR) { $directories += [Environment]::ExpandEnvironmentVariables($env:CODEX_INSTALL_DIR) }
+        if ($env:LOCALAPPDATA) { $directories += Join-Path $env:LOCALAPPDATA 'Programs\OpenAI\Codex\bin' }
+        $label = 'Codex CLI'
+        $installerUrl = 'https://chatgpt.com/codex/install.ps1'
+        $helpUrl = 'https://learn.chatgpt.com/docs/enterprise/windows-deployment'
     }
-    return $false
+    if ($env:APPDATA) { $directories += Join-Path $env:APPDATA 'npm' }
+    return [pscustomobject]@{ Agent = $Agent; Label = $label; InstallerUrl = $installerUrl;
+        HelpUrl = $helpUrl; Directories = @($directories | Select-Object -Unique) }
 }
 
-function Confirm-Codex {
-    if (Get-Command codex -ErrorAction SilentlyContinue) { return $true }
-    Write-Host "'codex' not found on PATH - looking for it..." -ForegroundColor Yellow
-    $candidates = @("$env:LOCALAPPDATA\Programs\OpenAI\Codex\bin", "$env:APPDATA\npm")
-    foreach ($dir in $candidates) {
-        if ((Test-Path -LiteralPath "$dir\codex.exe") -or (Test-Path -LiteralPath "$dir\codex.cmd")) {
-            Add-ToPath -Dir $dir
-            if (Get-Command codex -ErrorAction SilentlyContinue) { return $true }
+function Find-AgentCommand {
+    param($Info)
+    # Resolve native/npm application shims, rather than a blocked npm .ps1 or a shell alias.
+    $command = Get-Command -Name $Info.Agent -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($command) { return $command.Source }
+    foreach ($dir in $Info.Directories) {
+        foreach ($extension in @('.exe','.cmd')) {
+            $candidate = Join-Path $dir ($Info.Agent + $extension)
+            if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                Add-ToPath -Dir $dir
+                return [IO.Path]::GetFullPath($candidate)
+            }
         }
     }
-    return $false
+    return $null
+}
+
+function Refresh-SessionPath {
+    # An installer changes its own environment and may persist PATH; refresh this launcher too.
+    $entries = @()
+    if ($env:PATH) { $entries = @($env:PATH.Split(';') | Where-Object { $_ }) }
+    foreach ($scope in @('Machine','User')) {
+        $persisted = [Environment]::GetEnvironmentVariable('PATH', $scope)
+        if (-not $persisted) { continue }
+        foreach ($dir in @($persisted.Split(';') | Where-Object { $_ })) {
+            if (-not ($entries | Where-Object { $_.TrimEnd('\') -ieq $dir.TrimEnd('\') })) { $entries += $dir }
+        }
+    }
+    $env:PATH = $entries -join ';'
+}
+
+function Receive-AgentInstaller {
+    param([string]$Uri, [string]$Destination)
+    Invoke-WebRequest -UseBasicParsing -Uri $Uri -OutFile $Destination -TimeoutSec 120 -ErrorAction Stop
+}
+
+function Invoke-DownloadedInstaller {
+    param([string]$InstallerFile)
+    # A child process contains the installer's exit statements and environment changes.
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $InstallerFile | Out-Host
+    return $LASTEXITCODE
+}
+
+function Install-AgentCli {
+    param($Info)
+    $temporary = Join-Path ([IO.Path]::GetTempPath()) ('AgenticFusion-' + $Info.Agent + '-install-' + [guid]::NewGuid().ToString('N') + '.ps1')
+    $originalTls = [Net.ServicePointManager]::SecurityProtocol
+    try {
+        [Net.ServicePointManager]::SecurityProtocol = $originalTls -bor [Net.SecurityProtocolType]::Tls12
+        Receive-AgentInstaller -Uri $Info.InstallerUrl -Destination $temporary
+        if (-not (Test-Path -LiteralPath $temporary -PathType Leaf) -or (Get-Item -LiteralPath $temporary).Length -eq 0) {
+            throw 'The installer download was empty or missing.'
+        }
+        $installerExit = Invoke-DownloadedInstaller -InstallerFile $temporary
+        if ($installerExit -ne 0) { throw "$($Info.Label) installer exited with code $installerExit." }
+    } finally {
+        [Net.ServicePointManager]::SecurityProtocol = $originalTls
+        if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force }
+    }
+}
+
+function Confirm-AgentInstallation {
+    param([ValidateSet('claude','codex')][string]$Agent)
+    if ($env:SETUP_ONLY -eq '1') { return $null }
+    $info = Get-AgentInstallInfo -Agent $Agent
+    $command = Find-AgentCommand -Info $info
+    if ($command) { return $command }
+    Write-Host "$($info.Label) ('$Agent') was not found on PATH or in its usual install folders." -ForegroundColor Yellow
+    Write-Host "Official installer: $($info.InstallerUrl)"
+    try { $answer = Read-Host "Download and run this installer for your Windows user? [y/N]" }
+    catch { Write-Warning 'Installation permission was not provided. Startup stopped.'; return $null }
+    if ($answer -notmatch '^\s*(?i:y|yes)\s*$') {
+        Write-Host "$($info.Label) was not installed. Run this launcher again when ready."
+        return $null
+    }
+    try {
+        Write-Host "Installing $($info.Label)..." -ForegroundColor Cyan
+        Install-AgentCli -Info $info
+        Refresh-SessionPath
+        $command = Find-AgentCommand -Info $info
+        if (-not $command) { throw 'The installer finished, but the selected CLI could not be found.' }
+        $version = & $command --version | Out-String
+        if ($LASTEXITCODE -ne 0 -or -not $version.Trim()) { throw 'The installed CLI did not pass its --version check.' }
+        Write-Host "$($info.Label) is ready: $($version.Trim())" -ForegroundColor Green
+        return $command
+    } catch {
+        Write-Warning "$($info.Label) installation did not complete: $($_.Exception.Message)"
+        Write-Host "Install or repair it using $($info.HelpUrl), then run this launcher again."
+        return $null
+    }
 }
 
 function Write-ProjectJson {
@@ -124,10 +211,13 @@ function Write-ProjectJson {
 
 function Initialize-ProjectFiles {
     $portable = @(
-        'Fusion-Claude.bat', 'Fusion-Codex.bat', 'Agentic-Fusion.md', 'DfAM.md', 'CLAUDE.md', 'AGENTS.md',
+        'Fusion-Claude.bat', 'Fusion-Codex.bat', 'Agentic-Fusion.md', 'DfAM.md', 'FDM-Slicing.md', 'Printers.json', 'CLAUDE.md', 'AGENTS.md', '.gitignore',
         '.mcp.json', 'settings.json', '.codex\config.toml',
         '.codex\hooks.json', '.agents\hooks\hooks.json', '.agents\scripts\task-complete.ps1',
+        '.agents\scripts\application-session.ps1',
         '.agents\.claude-plugin\plugin.json',
+        '.agents\skills\application-session\SKILL.md',
+        '.agents\skills\application-session\references\lifecycle.md',
         '.agents\skills\fusion-model\SKILL.md',
         '.agents\skills\fusion-model\references\design-and-assembly.md',
         '.agents\skills\fusion-model\references\mcp.md',
@@ -147,7 +237,23 @@ function Initialize-ProjectFiles {
         '.agents\skills\fusion-repair\SKILL.md',
         '.agents\skills\fusion-repair\references\mcp-and-save.md',
         '.agents\skills\fusion-repair\references\document-state.md',
-        '.agents\skills\fusion-repair\references\geometry.md'
+        '.agents\skills\fusion-repair\references\geometry.md',
+        '.agents\skills\orca-slice\SKILL.md',
+        '.agents\skills\orca-slice\references\startup.md',
+        '.agents\skills\orca-slice\references\workflow.md',
+        '.agents\skills\orca-slice\references\settings.md',
+        '.agents\skills\orca-slice\references\layer-height.md',
+        '.agents\skills\orca-slice\references\support-materials.md',
+        '.agents\skills\orca-slice\scripts\start_orca.py',
+        '.agents\skills\orca-slice\scripts\slicer.py',
+        '.agents\skills\orca-slice\scripts\slicer_windows.ps1',
+        '.agents\skills\printer-library\SKILL.md',
+        '.agents\skills\printer-library\references\format.md',
+        '.agents\skills\printer-library\assets\printer.example.json',
+        '.agents\skills\printer-library\scripts\printer_library.py',
+        '.agents\skills\fdm-calibrate\SKILL.md',
+        '.agents\skills\fdm-calibrate\references\practice.md',
+        '.agents\skills\slice-compare\SKILL.md'
     )
     foreach ($name in $portable) {
         $source = Join-Path $TemplateDir $name
@@ -173,6 +279,7 @@ function Initialize-ProjectFiles {
 - **Key parameters and expressions:** TBD
 - **Accepted decisions and verified geometry:** TBD
 - **Open items:** TBD
+- **Restart checkpoint:** No restart prepared; record saved document/job identifiers and ordered pending tasks before any usage-limit handoff or application restart.
 
 This file holds the current design intent and decisions for this design only. Keep this section concise and see `Agentic-Fusion.md` for context size and placement rules.
 
@@ -298,20 +405,12 @@ function Start-AgenticFusion {
     }
     if (-not $contextFits) { return }
 
-    if ($env:AGENT -eq 'codex') {
-        if (-not (Confirm-Codex)) {
-            Write-Host "Codex ('codex') was not found on PATH or in the usual install folders. Install it, then run this again." -ForegroundColor Red
-            return
-        }
-    }
-    else {
+    if ($env:AGENT -eq 'claude') {
         # Claude account and runtime data stay in its normal user config, outside the portable folder.
         Remove-Item Env:CLAUDE_CONFIG_DIR -ErrorAction SilentlyContinue
-        if (-not (Confirm-Claude)) {
-            Write-Host "Claude Code ('claude') was not found on PATH or in the usual install folders. Install it, then run this again." -ForegroundColor Red
-            return
-        }
     }
+    $agentCommand = Confirm-AgentInstallation -Agent $env:AGENT
+    if (-not $agentCommand) { return }
     Set-Location -LiteralPath $ProjectDir
 
     # Start Fusion if it isn't running.
@@ -348,13 +447,27 @@ function Start-AgenticFusion {
         }
     }
 
+    # Register actual Fusion sessions only after setup-only has returned. No AI process is watched.
+    $sessionHelper = Join-Path $ProjectDir '.agents\scripts\application-session.ps1'
+    $restartLauncher = if ($FusionPath) { $FusionPath } elseif ($launcher) { $launcher } else { Find-FusionLauncher }
+    foreach ($fusionSession in @(Get-Process -Name $ProcessName -ErrorAction SilentlyContinue)) {
+        try {
+            $trackArgs = @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',$sessionHelper,
+                '-Action','Register','-ProjectDir',$ProjectDir,'-ProcessId',$fusionSession.Id,'-Kind','Fusion','-StartMonitor')
+            if ($restartLauncher) { $trackArgs += @('-LaunchPath', $restartLauncher) }
+            $registration = & powershell.exe @trackArgs | Out-String
+            if ($LASTEXITCODE -ne 0) { throw 'Session registration failed.' }
+            Write-Host "Fusion session $($fusionSession.Id) tracked for the 12-hour maintenance deadline."
+        } catch { Write-Warning "Application tracking needs attention: $($_.Exception.Message) Use application-session before substantial work." }
+    }
+
     if ($env:AGENT -eq 'codex') {
         Write-Host "Starting Codex in $ProjectDir" -ForegroundColor Cyan
-        codex
+        & $agentCommand
     }
     else {
         Write-Host "Starting Claude Code in $ProjectDir" -ForegroundColor Cyan
-        claude --settings $settingsFile --plugin-dir (Join-Path $ProjectDir '.agents')
+        & $agentCommand --settings $settingsFile --plugin-dir (Join-Path $ProjectDir '.agents')
     }
 }
 

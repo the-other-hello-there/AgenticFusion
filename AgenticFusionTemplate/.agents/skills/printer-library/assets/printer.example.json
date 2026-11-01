@@ -1,0 +1,27 @@
+{
+  "id": "example-printer",
+  "name": "Example only - replace with the actual printer",
+  "manufacturer": null,
+  "model": null,
+  "hardware": {
+    "build_volume_mm": null,
+    "bed_origin": null,
+    "bed_shape_mm": null,
+    "nozzle_diameters_mm": [],
+    "firmware": null,
+    "max_nozzle_temp_c": null,
+    "max_bed_temp_c": null
+  },
+  "evidence": {
+    "status": "unverified",
+    "source": "Example record, not a real or confirmed printer",
+    "checked_on": null
+  },
+  "slicer": {
+    "family": "OrcaSlicer",
+    "version": null,
+    "required_system_presets": [],
+    "presets": []
+  },
+  "notes": []
+}
