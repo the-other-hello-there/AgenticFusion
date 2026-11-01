@@ -4,7 +4,9 @@ Run `Run-Benchmark.bat` from this folder for a guided Windows benchmark. It copi
 
 ## Benchmark prompts
 
-For maintenance checks without an installed slicer, run `py -3 Benchmarking/Test-OrcaSlicer.py`, `py -3 Benchmarking/Test-SlicerDiscovery.py`, and `powershell.exe -NoProfile -ExecutionPolicy Bypass -File Explorations/OrcaSlicer/Test-CombinedSetup.ps1` from the repository root. These check optional MCP configuration, slicer choice gates, Windows activation routing, CLI artifacts/failures and both launchers in disposable project copies; they are not live slicing scores. The discovery suite compiles the shipped native Windows activation interop without opening an app. `slicer.py list` inventories real installations without executing them.
+Run `py -3 Benchmarking/Test-AgentInstallation.py` to check the launchers' missing-CLI permission prompts, selected-agent installation, PATH discovery, version verification, failure handling and immediate startup continuation. It uses fake CLIs and substitutes downloads/installers in disposable child processes; it never installs software or changes the user's PATH. Both `--setup-only` variants must remain free of installation prompts/downloads and application launches.
+
+For maintenance checks without an installed slicer, run `py -3 Benchmarking/Test-OrcaSlicer.py`, `py -3 Benchmarking/Test-SlicerDiscovery.py`, and `powershell.exe -NoProfile -ExecutionPolicy Bypass -File Benchmarking/Test-CombinedSetup.ps1` from the repository root. These check optional MCP configuration, slicer choice gates, Windows activation routing, CLI artifacts/failures and both launchers in disposable project copies; they are not live slicing scores. The discovery suite compiles the shipped native Windows activation interop without opening an app. `slicer.py list` inventories real installations without executing them.
 
 Run `py -3 Benchmarking/Test-PrinterLibrary.py` for printer catalog/preset transfer checks. The combined setup check also verifies that both launchers preserve an existing printer library.
 

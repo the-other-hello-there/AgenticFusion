@@ -1,4 +1,11 @@
-# Generated maintenance data; keep authored context and test results tracked.
+# Local maintenance notes and generated data.
 .local/
 __pycache__/
 *.py[cod]
+
+# Working-agent entrypoints for this repository only; portable copies stay tracked.
+/AGENTS.md
+/CLAUDE.md
+
+# Exploration work stays off the main branch.
+/Explorations/

@@ -2,13 +2,29 @@
 
 A portable Windows folder for Autodesk Fusion's local MCP server with **Claude Code or Codex**. Copy [`AgenticFusionTemplate/`](AgenticFusionTemplate/) for each project; either launcher prepares shared files and starts Fusion and the chosen agent.
 
+## Dependencies
+
+| Dependency | Needed for | Setup |
+| --- | --- | --- |
+| Windows with Command Prompt, Windows PowerShell (`powershell.exe`) and .NET | Launchers, application housekeeping, Windows slicer discovery/activation and the benchmark runner | The scripts use these Windows components directly. |
+| Autodesk Fusion desktop application, signed in, with its local MCP server enabled | CAD inspection, modeling and verification | Install Fusion and enable its MCP server as described below. |
+| Claude Code or Codex CLI, with an account for the selected agent | Agent sessions | Install either or both. The corresponding launcher offers its official installer when the selected CLI is missing, then opens the agent for sign-in. |
+| Internet access | Agent installation/sign-in/services and Fusion cloud access | Fusion's local MCP connection uses loopback HTTP; the applications' online services are separate. |
+| Python 3.11 or newer, with the Windows `py` launcher for the documented commands | Optional slicing/printer-library helpers and Python maintenance checks | Ensure `py -3` selects a supported interpreter. The shipped Python helpers use only the standard library. |
+| An installed OrcaSlicer variant or Bambu Studio, plus verified printer/nozzle/material profiles | Optional FDM slicing and UI preview | Select from discovered installations. Headless slicing depends on the chosen build's CLI capabilities. |
+| A slicer build exposing a compatible MCP server | Optional OrcaMCP tools | Required only for that integration path; ordinary discovery and CLI slicing use the installed slicer's own capabilities. |
+
+Git is needed to clone or maintain this repository, rather than to run a copied project. The template has no `pip` or `npm` package installation step; it can also use agent CLIs already installed through npm. Python and a slicer are optional for ordinary Fusion startup.
+
 ## Install Fusion and an agent
 
 1. Install the [Fusion desktop application](https://help.autodesk.com/view/fusion360/ENU/?caas=caas%2Fsfdcarticles%2Fsfdcarticles%2FHow-to-download-Fusion-360.html) and sign in. The local MCP server runs in the desktop application.
-2. Install one or both agents:
+2. Choose `Fusion-Claude.bat` or `Fusion-Codex.bat`. If its selected CLI is missing, the launcher asks permission to download and run that agent's official Windows installer for your user account. Only `y` or `yes` permits installation; Enter or No stops startup before Fusion opens. After installation it refreshes PATH, checks `--version`, and continues the same launch. An existing installation of the other agent does not change this choice. You can also install manually:
    - **Claude Code:** use Anthropic's [Windows setup guide](https://code.claude.com/docs/en/setup). In PowerShell: `irm https://claude.ai/install.ps1 | iex`. Open a new terminal and check `claude --version`.
-   - **Codex CLI:** use OpenAI's [Codex CLI guide](https://learn.chatgpt.com/docs/codex/cli) and [Windows installer](https://learn.chatgpt.com/docs/config-file/environment-variables). In PowerShell: `irm https://chatgpt.com/codex/install.ps1 | iex`. Open a new terminal and check `codex --version`.
+   - **Codex CLI:** use OpenAI's [Windows deployment guide](https://learn.chatgpt.com/docs/enterprise/windows-deployment). In PowerShell: `irm https://chatgpt.com/codex/install.ps1 | iex`. Open a new terminal and check `codex --version`.
 3. Sign in when the chosen agent first opens. Its credentials stay in its normal user profile, outside the project template.
+
+The launchers reuse existing native or npm installations and honor `CODEX_INSTALL_DIR` when configured for Codex. A failed download, installation or version check stops startup before Fusion opens and points to the selected agent's manual setup guide.
 
 ## Enable Fusion MCP
 
@@ -26,9 +42,9 @@ Claude loads `.agents/` through `--plugin-dir`; Codex discovers the same physica
 
 Both agents play a short Windows tone when their main agent finishes a response. Claude's plugin and Codex's project hook call the same `.agents/scripts/task-complete.ps1`; no instruction text or model call is involved. Codex requires project trust and a one-time review of the hook through `/hooks` before it runs. Start either agent through its launcher from the project folder.
 
-Drag an existing project folder onto either template launcher to copy missing files, including both launchers, without replacing context. In a copied folder, run `./Fusion-Claude.bat --setup-only` or `./Fusion-Codex.bat --setup-only` to prepare files without opening Fusion or an agent; both use the same setup routine.
+Drag an existing project folder onto either template launcher to copy missing files, including both launchers, without replacing context. In a copied folder, run `./Fusion-Claude.bat --setup-only` or `./Fusion-Codex.bat --setup-only` to prepare files without opening Fusion or an agent, prompting for installation or downloading software; both use the same setup routine.
 
-Setup preserves an older copy's launcher and instruction files. To fix Claude's instruction-size overflow, remove `@Project.md` and `@Agentic-Fusion.md` from its `CLAUDE.md`, then bring over current guide and skill routing while preserving project-specific edits. Setup copies missing skills only. If `Project.md` is large, keep current facts there and index needed history in `Project-History/` per the shared cleanup rule.
+Setup preserves existing launchers and instruction files and copies missing skills only. Merge template updates while preserving project-specific edits. Keep `CLAUDE.md` limited to startup and routing instructions: full-file imports such as `@Project.md` and `@Agentic-Fusion.md` can exceed the instruction budget. If `Project.md` is large, keep current facts there and index needed history in `Project-History/` per the shared cleanup rule.
 
 The launcher warns above the 40,000-character `Project.md` target. For Claude, it detects legacy full-file imports and stops before their combined text exceeds the observed 150,000-character instruction limit. It never rewrites existing context.
 
@@ -53,7 +69,7 @@ Keep slicing rules and preferences in [`FDM-Slicing.md`](AgenticFusionTemplate/F
 
 The [slicing workflow, hierarchy and flowchart](AgenticFusionTemplate/.agents/skills/orca-slice/references/workflow.md) separates policy, job coordination, native settings, adaptive/smoothed layer height, support-interface materials, calibration and comparisons. Detailed procedures load on demand. Rules include directly stacked infill by toolpath geometry (gyroid does not qualify), user-declared-final gating for high infill and specific approval before a second support-interface material is applied. Researched sources and build-specific incompatibilities are linked from the relevant procedures.
 
-UI preview permits background window control only while normal computer operation continues uninterrupted: no cursor movement, focus takeover, global typing/clicks or clipboard replacement. The current activation helper cannot guarantee that a slicer will not foreground itself. When compliant access is unavailable, retain the headless result and report the exact pending visual check rather than take over the desktop.
+UI preview permits background window control only while normal computer operation continues uninterrupted: no cursor movement, focus takeover, global typing/clicks or clipboard replacement. File activation can bring a slicer to the foreground. When compliant access is unavailable, retain the headless result and report the exact pending visual check rather than take over the desktop.
 
 ### Application housekeeping and resumable sessions
 
@@ -113,7 +129,7 @@ Fusion designs remain in Fusion's documents. Do not put agent credentials or gen
 
 Run [Run-Benchmark.bat](Benchmarking/Run-Benchmark.bat) to benchmark a fresh, disposable copy of the inner template. The guide opens the chosen agent, walks through B1–B7, times each prompt, and asks before adding results to [Benchmarking.md](Benchmarking/Benchmarking.md). Close the agent window before finishing so the temporary local copy can be deleted. Use a disposable Fusion project too; deleting the local copy does not remove Fusion cloud documents.
 
-## Maintenance and OrcaSlicer evidence
+## Maintenance
 
 The inner folder is the runtime migration package. Its shared launcher owns the explicit file allowlist; `py -3 Benchmarking/Test-PortablePackage.py` checks that the package contains exactly those files, has no generated/account data, and keeps its links self-contained. Maintenance tests, research/assessment notes, scratch copies and backups belong outside the inner folder. On-demand skill instructions, reference procedures and record templates are runtime resources and remain included.
 
@@ -152,12 +168,53 @@ Use verified printer/nozzle/material profiles and inherited settings. Evaluate l
 Record source/profile/output provenance, effective settings, approvals, exceptions, warnings, estimates with units and unresolved checks in Project.md. Keep reusable rules in shared slicing policy. Slicing and preview do not authorize printer uploads, heating, motion or starting a print.
 ```
 
-For legacy in-folder Claude configuration cleanup, generated `backups/`, `cache/`, `file-history/`, `session-env/`, `sessions/`, `shell-snapshots/`, `projects/`, `history.jsonl`, `.last-cleanup`, `.last-update-result.json`, `plugins/` and `skills/` are account/runtime data rather than migration-package source. Remove only identified obsolete backups (`backups/.claude.json.backup.*`), caches, past transcripts/tool results, file history, session environments and project paths from old locations after a recoverable copy. Preserve the current session, project/user files, credentials and installed plugins/skills. Do not read or copy `.credentials.json` or `.claude.json` into the template.
+Generated Claude `backups/`, `cache/`, `file-history/`, `session-env/`, `sessions/`, `shell-snapshots/`, `projects/`, `history.jsonl`, `.last-cleanup`, `.last-update-result.json`, `plugins/` and `skills/` are account/runtime data rather than migration-package source. During cleanup, remove only identified obsolete backups (`backups/.claude.json.backup.*`), caches, past transcripts/tool results, file history, session environments and project paths after a recoverable copy. Preserve the current session, project/user files, credentials and installed plugins/skills. Do not read or copy `.credentials.json` or `.claude.json` into the template.
 
-The [OrcaSlicer feasibility study](Explorations/OrcaSlicer/README.md) retains backend comparisons, a local inventory probe, and the live slicing decision gates. Its setup check now exercises the shipped helper; superseded static configuration examples were removed. `Benchmarking/Test-OrcaSlicer.py` checks protocol handling, application launch behavior with a simulated process, configuration preservation, and rollback with a local mock server. Live slicing remains unverified.
+Maintenance checks live in [`Benchmarking/`](Benchmarking/). Run these from the repository root to verify the runtime package, missing-agent installation flow, and both launchers in fresh copies:
 
-`py -3 Benchmarking/Test-SlicerDiscovery.py` checks selection before launching, duplicate discovery, Store activation routing, native interop compilation, CLI capability checks and verified-output/failure handling with simulated apps. `slicer.py list` found Windows Store OrcaSlicer, Snapmaker Orca and Bambu Studio on the assessment machine without opening them. Real GUI activation/import and slicing still need a chosen model and printer profiles.
+```powershell
+py -3 Benchmarking/Test-PortablePackage.py
+py -3 Benchmarking/Test-AgentInstallation.py
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File Benchmarking/Test-CombinedSetup.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File Benchmarking/Benchmark.ps1 -SelfTest
+```
 
-`py -3 Benchmarking/Test-PrinterLibrary.py` checks catalog transfer, native preset preservation, inheritance, conflicts and failed writes without an installed slicer. It does not verify a real printer or GUI preset import.
+The [benchmark guide](Benchmarking/Benchmarking.md) also lists slicer protocol/discovery, printer-library and application-session checks. Automated checks use simulated installers/apps and disposable projects; they do not install software, open live designs or validate physical prints. Live slicing, GUI import/preview and printer behavior need a chosen model, profiles and separate verification.
 
-Only the inner template is distributed. Benchmark sandboxes, exploration scratch files, and Python caches are ignored; keep application installs and agent runtime data outside that folder. Repository Git history is small and retained for recovery; cleanup does not require deleting or rewriting it.
+Only the inner template is distributed. Keep benchmark sandboxes, Python caches, application installs and agent runtime data outside that folder. Exploration work stays outside the main branch.
+
+## Changelog
+
+### v2026.11.01
+
+- Each launcher offers to install its selected missing agent CLI after explicit approval, refreshes PATH, verifies `--version` and continues the same startup. Declining or an installation failure stops before Fusion opens; setup-only never prompts or installs.
+- Launcher discovery uses native/npm application shims and recognizes a custom `CODEX_INSTALL_DIR`.
+
+### v2026.10.31
+
+- Added installed-slicer discovery and selection, including Snapmaker Orca and Windows Store apps, with headless slicing followed by UI preview when supported.
+- Applied shared FDM defaults for layers, shells, infill and supports, including explicit final-version/material-approval gates and non-disruptive UI handling.
+- Added shared application housekeeping, durable restart checkpoints and approval-gated maintenance at the 12-hour application deadline.
+
+### v2026.10.28
+
+- Added shared OrcaMCP startup and FDM slicing context.
+- Added portable printer definitions, native preset transfer, calibration and slice-comparison skills.
+- Added the guided benchmark runner and shared completion hooks.
+
+### v2026.10.14
+
+- Added timeline organization rules and launcher context-budget handling.
+- Loaded DfAM guidance and detailed references on demand to limit startup context.
+
+### v2026.10.09
+
+- Agents load task-specific skills on demand while preserving shared project context.
+
+### v2026.10.08
+
+- Added interchangeable Codex and Claude Code launchers using shared project context.
+
+### v2026.10.07
+
+- Introduced Fusion startup and agent-assisted DfAM assessments.
