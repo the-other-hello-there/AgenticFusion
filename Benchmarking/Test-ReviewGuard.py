@@ -386,6 +386,25 @@ class ReviewChecks(unittest.TestCase):
         with self.assertRaises(Hold):
             configure_project(self.workspace, True, ['all', 'modeling'])
 
+    def test_secondary_quota_notices_do_not_charge_models_or_change_review_accounting(self):
+        from secondary_verification import Notices, REMINDERS
+        notices=Notices(self.workspace,self.root/'notices',preferences={'enabled':True},clock=lambda:1000)
+        self.supervisor.notices=notices
+        self.supervisor.engine.policy['primary_meter_command']=['trusted-meter']
+        receipt={'amount':'1','unit':'usd','quality':'provider_reported','measurement_id':'quota-test',
+                 'allowance_windows':[{'window':'weekly','used_percent':75,'resets_at':20000}]}
+        with mock.patch('review_guard.command_call',return_value=receipt) as meter, mock.patch('sys.stderr',new=io.StringIO()) as output:
+            self.supervisor.meter('task',123)
+            self.assertEqual(output.getvalue(),REMINDERS['weekly'][25]+'\n')
+            self.supervisor.show_notices()
+            self.assertEqual(output.getvalue(),REMINDERS['weekly'][25]+'\n')
+            self.assertEqual(meter.call_count,1)
+        self.assertEqual(self.supervisor.engine.ledger.data['primary'],'1')
+        self.assertEqual(self.supervisor.engine.ledger.spent,Decimal(0))
+        with mock.patch.object(notices,'drain',side_effect=RuntimeError('optional notice failure')):
+            self.supervisor.show_notices()
+        self.assertEqual(self.supervisor.engine.ledger.data['primary'],'1')
+
     def test_native_claude_tool_provenance_and_unknown_codex_tools_are_conservative(self):
         names = {}
         normalize_events("claude", {"type": "assistant", "message": {"content": [

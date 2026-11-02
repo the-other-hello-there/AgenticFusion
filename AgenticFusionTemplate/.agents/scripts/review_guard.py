@@ -1,4 +1,4 @@
-"""Shared independent-review runtime for Codex, Claude Code and trusted JSONL bridges.
+"""Shared secondary agent verification runtime for Codex, Claude Code and trusted JSONL bridges.
 
 Python 3.11+, standard library only. Policy and runtime state are shared across agents.
 """
@@ -115,11 +115,11 @@ def configure_project(workspace, enabled, tasks=None, percent=None):
 def verification_selection(workspace, scope, percent=None):
     preferences = project_preferences(workspace)
     if not preferences['enabled']:
-        raise Hold('Agentic verification is not enabled for this project. An explicit user opt-in is required.')
+        raise Hold('Secondary agent verification is not enabled for this project. An explicit user opt-in is required.')
     if scope is None or task_scopes([scope]) != [scope]:
         raise Hold('Supply the user-authorized task type with --task-scope.')
     if scope not in preferences['tasks'] and 'all' not in preferences['tasks']:
-        raise Hold(f'Agentic verification is not enabled for task scope {scope}.')
+        raise Hold(f'Secondary agent verification is not enabled for task scope {scope}.')
     return {'task_scope': scope, 'budget_percent': budget_percent(percent) if percent is not None else preferences['budget_percent']}
 
 
@@ -567,6 +567,7 @@ class Supervisor:
         self.last_boundary_digest = None
         self.coverage_gaps = set()
         self.runtime_usage = []
+        self.notices = None
 
     def preflight(self):
         policy = self.engine.policy
@@ -594,6 +595,22 @@ class Supervisor:
                                    "runtime_usage": self.runtime_usage},
                                    self.state, 15)
             self.engine.ledger.record_primary(receipt)
+            if self.notices and isinstance(receipt.get('allowance_windows'), list):
+                try:
+                    self.notices.observe(self.agent, receipt)
+                    self.show_notices()
+                except Exception:
+                    pass
+
+    def show_notices(self):
+        if self.notices:
+            try:
+                if self.agent == 'codex':
+                    self.notices.poll_codex()
+                for message in self.notices.drain(self.agent):
+                    print(message, file=sys.stderr, flush=True)
+            except Exception:
+                pass  # Notification failures never alter verification authority or budget.
 
     def observe_usage(self, receipt):
         if not isinstance(receipt, dict):
@@ -634,7 +651,15 @@ class Supervisor:
         invocation = str(uuid.uuid4())
         self.runtime_usage = []
         command = primary_command(self.agent, self.workspace, self.engine.policy)
-        process = subprocess.Popen(command, cwd=self.workspace, stdin=subprocess.PIPE,
+        if self.notices is None and self.agent in {'codex', 'claude'} and self.engine.authority.get('verification'):
+            try:
+                from secondary_verification import Notices
+                self.notices = Notices(self.workspace, preferences={'enabled': True})
+            except Exception:
+                self.notices = False
+        self.show_notices()
+        environment = dict(os.environ, AGENTIC_SECONDARY_SUPERVISED='1')
+        process = subprocess.Popen(command, cwd=self.workspace, stdin=subprocess.PIPE, env=environment,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8",
                                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         messages = queue.Queue()
@@ -691,6 +716,7 @@ class Supervisor:
                             raise Hold("Terminal runtime event lacks a comparable usage receipt.")
                         completed = True
                     elif event_type == "tool_completed":
+                        self.show_notices()
                         self.events.append(event)
                         tools += 1
                         if sum(len(json.dumps(e, default=str).encode()) for e in self.events) > self.engine.policy["max_packet_bytes"]:
@@ -831,7 +857,7 @@ def main(argv=None):
         answer = supervisor.run()
         supervisor.report("cleared")
         print(answer)
-        print(f"Independent review cleared. Report: {supervisor.state / 'report.json'}", file=sys.stderr)
+        print(f"Secondary agent verification cleared. Report: {supervisor.state / 'report.json'}", file=sys.stderr)
         return 0
     except (Hold, OSError, ValueError, KeyError, TypeError) as exc:
         if supervisor:

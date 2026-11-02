@@ -92,7 +92,7 @@ class UpdateChecks(unittest.TestCase):
         for name in ('Independent-Review.md', '.agents/scripts/review_guard.py'):
             self.assertEqual((self.project / name).read_bytes(), review_files[name])
         launcher = (self.project / 'Fusion-Claude.bat').read_text(encoding='utf-8-sig')
-        self.assertIn('independent task supervisor', launcher)
+        self.assertIn('secondary agent verification supervisor', launcher)
         self.assertIn('Sync-ProjectResources', launcher)
         self.assertTrue((self.project / 'updater.bat').is_file())
         self.assertEqual(update.apply_update(self.project, raw, entries, files, revision, check=True)['changes'], [])

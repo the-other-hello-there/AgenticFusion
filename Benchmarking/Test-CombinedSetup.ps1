@@ -46,6 +46,9 @@ try {
         $verificationFile = Join-Path $project 'Project\Context\Agentic-Verification.json'
         New-Item -ItemType Directory -Path (Split-Path -Parent $verificationFile) -Force | Out-Null
         [IO.File]::WriteAllText($verificationFile, '{"schema_version":1,"enabled":true,"tasks":["modeling"],"budget_percent":"20"}', $utf8)
+        $customSettings = Get-Content -LiteralPath (Join-Path $templateDir 'settings.json') -Raw | ConvertFrom-Json
+        $customSettings | Add-Member -MemberType NoteProperty -Name 'statusLine' -Value ([pscustomobject]@{type='command';command='echo Preserve this project status line'}) -Force
+        [IO.File]::WriteAllText((Join-Path $project 'settings.json'), ($customSettings | ConvertTo-Json -Depth 20), $utf8)
         foreach ($name in @('AGENTS.md', 'CLAUDE.md', '.agents\skills\fusion-model\references\mcp.md')) {
             $file = Join-Path $project $name
             New-Item -ItemType Directory -Path (Split-Path -Parent $file) -Force | Out-Null

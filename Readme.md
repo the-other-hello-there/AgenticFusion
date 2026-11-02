@@ -10,7 +10,7 @@ A portable Windows folder for Autodesk Fusion's local MCP server with **Claude C
 | Autodesk Fusion desktop application, signed in, with its local MCP server enabled | CAD inspection, modeling and verification | Install Fusion and enable its MCP server as described below. |
 | Claude Code or Codex CLI, with an account for the selected agent | Agent sessions | Install either or both. The corresponding launcher offers its official installer when the selected CLI is missing, then opens the agent for sign-in. |
 | Internet access | Agent installation/sign-in/services and Fusion cloud access | Fusion's local MCP connection uses loopback HTTP; the applications' online services are separate. |
-| Python 3.11 or newer, with the Windows `py` launcher for the documented commands | Optional template updates, slicing/printer-library helpers, independent review and Python maintenance checks | Ensure `py -3` selects a supported interpreter. The shipped Python helpers use only the standard library. |
+| Python 3.11 or newer, with the Windows `py` launcher for the documented commands | Optional template updates, slicing/printer-library helpers, secondary agent verification/notices and Python maintenance checks | Ensure `py -3` selects a supported interpreter. The shipped Python helpers use only the standard library. |
 | An installed OrcaSlicer variant or Bambu Studio, plus verified printer/nozzle/material profiles | Optional FDM slicing and UI preview | Select from discovered installations. Headless slicing depends on the chosen build's CLI capabilities. |
 | A slicer build exposing a compatible MCP server | Optional OrcaMCP tools | Required only for that integration path; ordinary discovery and CLI slicing use the installed slicer's own capabilities. |
 
@@ -134,9 +134,9 @@ py -3 .agents/skills/printer-library/scripts/printer_library.py import --source 
 
 Use `fdm-calibrate` to plan and interpret measured printer/material calibration, and `slice-compare` to compare estimated time/material/quality tradeoffs while restoring the accepted baseline. Calibration evidence and job outcomes stay in `Project.md` or its indexed notes; reusable user preferences stay in `FDM-Slicing.md`. Both agents discover the same physical skill files.
 
-### Optional independent requirement review
+### Optional secondary agent verification
 
-Agentic verification is off until the user explicitly opts in for a project. Both agents remember enabled/disabled status, the covered task types and the user's budget in `Project/Context/Agentic-Verification.json`, indexed from `Project.md`. The default cap is 12.5% of measured primary-task consumption; the user can save a different project percentage or override it for one task. Ordinary modeling/tests/preview remain in effect for all tasks.
+Secondary agent verification is off until the user explicitly opts in for a project. Both agents remember enabled/disabled status, the covered task types and the user's budget in `Project/Context/Agentic-Verification.json`, indexed from `Project.md`. The default cap is 12.5% of measured primary-task consumption; the user can save a different project percentage or override it for one task. Ordinary modeling/tests/preview remain in effect for all tasks.
 
 ```powershell
 py -3 .agents/scripts/review_guard.py configure --workspace . --enable --tasks modeling slicing --budget-percent 12.5
@@ -145,6 +145,10 @@ py -3 .agents/scripts/review_guard.py configure --workspace . --disable
 ```
 
 Enable only task types requested by the user, or use `--tasks all` for an explicit project-wide choice. A supervised invocation must name a matching `--task-scope`; disabled/uncovered tasks never start a primary or reviewer through that path. Both agents use one [runtime and setup guide](AgenticFusionTemplate/Independent-Review.md), policy and external-meter default. Paid activation still requires a trusted bounded reviewer and meter. See the [assessment](Benchmarking/ReviewGuard/Assessment.md) for tested parity and current limitations.
+
+Shared command hooks show a prewritten offer after the user's second explicit objection to the approach, warning about the increased allowance use from reviewer calls and revisions. They never auto-enable verification. A standalone reply such as `Enable secondary agent verification for modeling, slicing` saves the user's choice and gets a fixed confirmation without a model call.
+
+When verification is enabled, fixed reminders appear only at **50%, 25%, 15%, 10% and 5% remaining**, separately for reported 5-hour and weekly windows, once per mark/reset period. Codex reads native account limits; Claude's quiet status-line bridge receives native quota fields. Existing custom Claude status lines are preserved and can forward their telemetry to the bridge. Missing quotas stay unknown; headless Claude needs verified meter data or a native telemetry bridge. See the [notification procedure](AgenticFusionTemplate/.agents/skills/application-session/references/secondary-verification-notices.md) for exact replies, conservative objection detection, hook trust and telemetry limits. Notice wording and display use no model call; normal work replies and actual verification retain their usual usage.
 
 ### Check the connection
 
@@ -241,7 +245,8 @@ Only the inner template is distributed. Keep benchmark sandboxes, Python caches,
 
 ### v2026.11.01
 
-- Agentic verification requires a saved project opt-in and matching task type, remembers disabled/enabled choices and task scopes, and supports user-selected project/task budgets with a 12.5% default cap.
+- Added model-free secondary agent verification offers after repeated explicit objections, standalone opt-in replies, and per-window allowance reminders only at 50%, 25%, 15%, 10% and 5% remaining.
+- Secondary agent verification requires a saved project opt-in and matching task type, remembers disabled/enabled choices and task scopes, and supports user-selected project/task budgets with a 12.5% default cap.
 - The updater prompts for an available branch, accepts explicit branch selection for scripts, remembers successful choices and preserves independent-review policy across branch changes.
 - Renamed the update command to `updater.bat`; older projects can migrate using the fresh updater while preserving project content and customized old files.
 - Added verified template updates that preserve project files/preferences and added skills, hold local edit conflicts, and retain recovery copies with rollback.

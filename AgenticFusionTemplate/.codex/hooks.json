@@ -1,5 +1,5 @@
 {
-  "description": "Play the shared completion tone after a Codex turn.",
+  "description": "Shared completion tone and model-free secondary agent verification offers/reminders.",
   "hooks": {
     "Stop": [
       {
@@ -8,6 +8,37 @@
             "type": "command",
             "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .agents\\scripts\\task-complete.ps1",
             "timeout": 5
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .agents\\scripts\\secondary-verification.ps1 -Mode hook -Agent codex",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .agents\\scripts\\secondary-verification.ps1 -Mode hook -Agent codex",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .agents\\scripts\\secondary-verification.ps1 -Mode hook -Agent codex",
+            "timeout": 15
           }
         ]
       }

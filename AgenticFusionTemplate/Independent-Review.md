@@ -1,12 +1,14 @@
-# Independent requirement review runtime
+# Secondary agent verification
 
 This experimental runtime supervises a **whole task**, not an agent-selected review request. It launches a primary CLI with its output captured, automatically schedules implementation reviews from runtime tool events and actual filesystem changes, and requires an independent review before releasing the candidate answer. A rejection starts a fresh primary invocation with the original requirements and concise revision findings. Existing completion-tone hooks remain unchanged.
 
 The runtime is one shared file, `.agents/scripts/review_guard.py`, used by Codex and Claude Code with one `Review-Policy.json`. Python 3.11+ and an installed primary CLI are needed. Other agents can use the documented trusted JSONL bridge contract below.
 
+Shared command hooks offer **secondary agent verification** after a second explicit objection, with an allowance warning, and show fixed reminders at 50%, 25%, 15%, 10% and 5% remaining in reported 5-hour/weekly limits. These notices make no model calls and never enable verification without approval. Read the [notice and telemetry procedure](.agents/skills/application-session/references/secondary-verification-notices.md) for exact replies, detection limits, quota adapters and compatibility identifiers.
+
 ## Project opt-in, task scope and budget
 
-Agentic verification is **off unless the user explicitly requests it for the project**. Ordinary modeling checks, tests and slice preview still apply. Do not infer paid verification permission from a difficult task, this branch, an installed reviewer or an old environment variable. Both agents read the same preferences at `Project/Context/Agentic-Verification.json`, linked from root `Project.md`. An absent file means disabled. Only configure/change preferences on the user's specific request; this software-maintenance request does not enable verification in any design project.
+Secondary agent verification is **off unless the user explicitly requests it for the project**. Ordinary modeling checks, tests and slice preview still apply. Do not infer paid verification permission from a difficult task, this branch, an installed reviewer or an old environment variable. Both agents read the same preferences at `Project/Context/Agentic-Verification.json`, linked from root `Project.md`. An absent file means disabled. Only configure/change preferences on the user's specific request; this software-maintenance request does not enable verification in any design project.
 
 After the user opts in, record their task types and optional budget:
 

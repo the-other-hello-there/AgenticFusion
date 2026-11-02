@@ -68,14 +68,14 @@ function Get-Process {
         $output = [System.IO.File]::ReadAllText($stdout) + [System.IO.File]::ReadAllText($stderr)
         if ($case -like 'normal*') {
             if ($process.ExitCode -ne 0 -or $output -notmatch "UNGUARDED FIXTURE $agentName" -or
-                $output -match 'independent task supervisor' -or (Test-Path -LiteralPath $state)) {
+                $output -match 'secondary agent verification supervisor' -or (Test-Path -LiteralPath $state)) {
                 throw "$agentName did not preserve ordinary startup without a scoped task request:`n$output"
             }
             Write-Output "$agentName ordinary launch remained unguarded for $case; fixture agent only."
             continue
         }
         if ($case -in @('disabled','excluded')) {
-            if ($process.ExitCode -ne 2 -or $output -notmatch 'Agentic verification is not enabled' -or
+            if ($process.ExitCode -ne 2 -or $output -notmatch 'Secondary agent verification is not enabled' -or
                 $output -match 'UNGUARDED FIXTURE' -or (Test-Path -LiteralPath $state)) {
                 throw "$agentName started review for a project/task without user opt-in:`n$output"
             }
@@ -84,13 +84,13 @@ function Get-Process {
         }
         if ($case -eq 'missing-cli') {
             if ($process.ExitCode -ne 2 -or $output -notmatch 'Guarded task could not start its primary runtime' -or
-                $output -match 'independent task supervisor' -or (Test-Path -LiteralPath $state)) {
+                $output -match 'secondary agent verification supervisor' -or (Test-Path -LiteralPath $state)) {
                 throw "$agentName did not stop a guarded launch when installation was declined or failed:`n$output"
             }
             Write-Output "$agentName guarded launch stopped before Fusion/supervisor when the selected CLI was unavailable."
             continue
         }
-        if ($process.ExitCode -ne 2 -or $output -notmatch 'DELIVERY HELD' -or $output -notmatch 'independent task supervisor') {
+        if ($process.ExitCode -ne 2 -or $output -notmatch 'DELIVERY HELD' -or $output -notmatch 'secondary agent verification supervisor') {
             throw "$agentName guarded dispatch failed (exit $($process.ExitCode)):`n$output"
         }
         if (-not (Test-Path -LiteralPath (Join-Path $state 'report.json'))) { throw "$agentName did not reach guarded preflight:`n$output" }

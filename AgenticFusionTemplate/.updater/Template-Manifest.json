@@ -14,8 +14,10 @@
     },
     {
       "path": ".agents/hooks/hooks.json",
-      "sha256": "9ada85a8a5292cdb9532be83f768ad3c6db85cac2c117fd835037ad54649c262",
-      "previous_sha256": [],
+      "sha256": "21b293852473231369cfd95a1b3eaa9efb1a6d1d4a2753f950fe426d4693591a",
+      "previous_sha256": [
+        "9ada85a8a5292cdb9532be83f768ad3c6db85cac2c117fd835037ad54649c262"
+      ],
       "policy": "managed"
     },
     {
@@ -32,10 +34,23 @@
     },
     {
       "path": ".agents/scripts/review_guard.py",
-      "sha256": "93563db2e635da8b7bd5ec8e08da695c5cf692e25bd161b60fe160303867700a",
+      "sha256": "ad6f7caeb08df4a479c9e0ef41a6ea55399120a2cda273b6e6173371a8caffa1",
       "previous_sha256": [
-        "1efbad9a4418bc69b58dd08202feda48e0923851b5950d210e4a857740a76486"
+        "1efbad9a4418bc69b58dd08202feda48e0923851b5950d210e4a857740a76486",
+        "93563db2e635da8b7bd5ec8e08da695c5cf692e25bd161b60fe160303867700a"
       ],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/scripts/secondary-verification.ps1",
+      "sha256": "8c3957b0a77fdef39b765c570ecacf95e177355035f34c3b2ba95f3b7119010a",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/scripts/secondary_verification.py",
+      "sha256": "62e69c656b58ea7c5f27b50311c5491c522bc36257cb48bd1b8b3c5e9caf048b",
+      "previous_sha256": [],
       "policy": "managed"
     },
     {
@@ -53,6 +68,12 @@
     {
       "path": ".agents/skills/application-session/references/lifecycle.md",
       "sha256": "bc9402fc82ee84bba79420db6399523ee49b28c943a757f0076158ef6c60ad74",
+      "previous_sha256": [],
+      "policy": "managed"
+    },
+    {
+      "path": ".agents/skills/application-session/references/secondary-verification-notices.md",
+      "sha256": "b7bd88595a8cbe6b2a5448fc9cb19a3061ee708fb421a1f71e9fa4a41a5a0f99",
       "previous_sha256": [],
       "policy": "managed"
     },
@@ -351,8 +372,10 @@
     },
     {
       "path": ".codex/hooks.json",
-      "sha256": "b1f8b701d66a0d4c821aeb01762d6a7cdb6cfb7cd504666a2e9ba613c7948558",
-      "previous_sha256": [],
+      "sha256": "0aa3457c418b9dc852c2c09a6f34f11ca0076e2d0d6378edae65807e95c56bba",
+      "previous_sha256": [
+        "b1f8b701d66a0d4c821aeb01762d6a7cdb6cfb7cd504666a2e9ba613c7948558"
+      ],
       "policy": "managed"
     },
     {
@@ -414,8 +437,9 @@
     },
     {
       "path": "Agentic-Fusion.md",
-      "sha256": "0518bd2685a1adef6452a64f1f265531a9471c82d69b46dac57950eccdda3a14",
+      "sha256": "d2aa635aff1c5195d2aa06b37d8fa251b780a0b031c59a481e39d1abfc208fcc",
       "previous_sha256": [
+        "0518bd2685a1adef6452a64f1f265531a9471c82d69b46dac57950eccdda3a14",
         "467e3e659ecfb5f35764652540294c114672685133bc617a0177a523be66ecab",
         "47fc8c1d24322fa4ff87071ea6ebd1670a36b2a9de1c82c22fe9bf9883caf2c7",
         "5a2543cee5d7f245ce150414f60028bb2f490e667fb4c1c18980abe94f030425",
@@ -472,10 +496,11 @@
     },
     {
       "path": "Fusion-Claude.bat",
-      "sha256": "30f206d6a0668ca3a8a02a428e88b04e5b6b19c51b02bfb1e7d09bad1f7212b6",
+      "sha256": "1340257c21673fbf0eb40495f3faa5a9f668df56d629f4dde1d387cfb06fa2ed",
       "previous_sha256": [
         "14d60ca160c830a4a7dbf1dc190c6819be8bf705eb69be6c720707d9aa0773b8",
         "28b9ba862f1bc999547c0a72137ceecf0fb5932a8d65d5f4c27da4544492bb77",
+        "30f206d6a0668ca3a8a02a428e88b04e5b6b19c51b02bfb1e7d09bad1f7212b6",
         "44ee7e4e31d78e55fd903183118fea41580b3619766d074841eb762400f88f75",
         "45dd541bd9dc1e49ea35d7b27fbddcd89cc08058733de13f9f1a029ec5035317",
         "4a4f0a8b5bdd24b0ac9e7617b2786df8e1bf1cec7b375fe942d6fb9764c2cb5a",
@@ -501,9 +526,10 @@
     },
     {
       "path": "Independent-Review.md",
-      "sha256": "4e11ce6ffa30da55e8c8794013255be690aa8da3ffe25223575a3fe6c109d1c4",
+      "sha256": "58cbd5959bf05bac1dff2947f88a18d48b023e1ef259b59bf1705d8982e9d563",
       "previous_sha256": [
         "3bff946fe09482c4d797dd09393ef8a6cc8fb5e9309457ae9f881cbfcbc0a227",
+        "4e11ce6ffa30da55e8c8794013255be690aa8da3ffe25223575a3fe6c109d1c4",
         "7e7a7ed631cd5007ca1fcd62972b29fffee82e77ba4a153786c4c97bc0ef29c9"
       ],
       "policy": "managed"

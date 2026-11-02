@@ -217,12 +217,14 @@ function Initialize-ProjectFiles {
         '.codex\hooks.json', '.agents\hooks\hooks.json', '.agents\scripts\task-complete.ps1',
         '.agents\scripts\application-session.ps1',
         '.agents\scripts\review_guard.py',
+        '.agents\scripts\secondary_verification.py', '.agents\scripts\secondary-verification.ps1',
         '.agents\scripts\project-resources.ps1',
         '.agents\skills\project-resources\SKILL.md',
         '.agents\skills\project-resources\references\workspace.md',
         '.agents\.claude-plugin\plugin.json',
         '.agents\skills\application-session\SKILL.md',
         '.agents\skills\application-session\references\lifecycle.md',
+        '.agents\skills\application-session\references\secondary-verification-notices.md',
         '.agents\skills\fusion-model\SKILL.md',
         '.agents\skills\fusion-model\references\design-and-assembly.md',
         '.agents\skills\fusion-model\references\mcp.md',
@@ -344,6 +346,17 @@ function Ensure-CodexMcp {
     }
 }
 
+function Get-GlobalClaudeStatusLine {
+    # Read only Claude's settings, never its account/credential files. Project settings still win.
+    $profileDir = [Environment]::GetFolderPath('UserProfile')
+    $globalSettingsFile = Join-Path $profileDir '.claude\settings.json'
+    if (Test-Path -LiteralPath $globalSettingsFile -PathType Leaf) {
+        try { return (Get-Content -LiteralPath $globalSettingsFile -Raw | ConvertFrom-Json).statusLine }
+        catch { return $null }
+    }
+    return $null
+}
+
 function Ensure-ProjectSettings {
     $file = Join-Path $ProjectDir 'settings.json'
     try { $json = Get-Content -LiteralPath $file -Raw | ConvertFrom-Json }
@@ -357,6 +370,14 @@ function Ensure-ProjectSettings {
     }
     if (-not $json.PSObject.Properties['autoMemoryEnabled'] -or $json.autoMemoryEnabled -ne $false) {
         $json | Add-Member -MemberType NoteProperty -Name 'autoMemoryEnabled' -Value $false -Force
+        $changed = $true
+    }
+    if (-not $json.PSObject.Properties['statusLine'] -and -not (Get-GlobalClaudeStatusLine)) {
+        $json | Add-Member -MemberType NoteProperty -Name 'statusLine' -Value ([pscustomobject]@{
+            type = 'command';
+            command = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File .agents\scripts\secondary-verification.ps1 -Mode statusline -Agent claude';
+            refreshInterval = 15
+        })
         $changed = $true
     }
     if ($changed) {
@@ -490,7 +511,7 @@ function Start-AgenticFusion {
         if ($env:AGENTIC_REVIEW_STATE) { $reviewArgs += @('--state-dir', $env:AGENTIC_REVIEW_STATE) }
         if ($env:AGENTIC_REVIEW_SCOPE) { $reviewArgs += @('--task-scope', $env:AGENTIC_REVIEW_SCOPE) }
         if ($env:AGENTIC_REVIEW_BUDGET_PERCENT) { $reviewArgs += @('--budget-percent', $env:AGENTIC_REVIEW_BUDGET_PERCENT) }
-        Write-Host 'Starting the independent task supervisor. Candidate output is withheld until review clears.' -ForegroundColor Cyan
+        Write-Host 'Starting the secondary agent verification supervisor. Candidate output is withheld until review clears.' -ForegroundColor Cyan
         & py @reviewArgs
         exit $LASTEXITCODE
     }
