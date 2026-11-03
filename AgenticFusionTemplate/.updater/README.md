@@ -7,8 +7,8 @@ Run the root `updater.bat` from a copied project. This folder contains its imple
 .\updater.bat --check
 .\updater.bat --project-dir .
 # Or pass the user's branch choice explicitly:
-.\updater.bat --branch 'secondary-agent-verification' --check
-.\updater.bat --branch 'secondary-agent-verification'
+.\updater.bat --branch 'experimental-feature/secondary-agent-verification' --check
+.\updater.bat --branch 'experimental-feature/secondary-agent-verification'
 .\updater.bat --list-branches
 # From a fresh template download, update an older project:
 .\updater.bat --project-dir 'C:\Designs\Existing project'
@@ -16,7 +16,7 @@ Run the root `updater.bat` from a copied project. This folder contains its imple
 .\updater.bat --project-dir 'C:\Designs\Existing project' --source 'C:\Downloads\AgenticFusion-main\AgenticFusionTemplate'
 ```
 
-The updater lists available GitHub branches and asks which to use, by number or exact name. Enter accepts the suggested branch: the last successful choice, the installed template's published branch, or main for older copies without branch metadata. A deleted branch requires an explicit new choice; cancellation, missing input or discovery errors stop without applying an update. Agents should ask the user for a branch and pass that choice with `--branch`; `--list-branches` returns the available names as JSON. A current project reports `Already up to date` and makes no writes or backup. `--source` stays offline, skips the prompt and cannot be combined with `--branch`.
+The updater paginates through the repository's live GitHub branch list and asks which branch to use, by number or exact name. It does not keep a hardcoded allowlist, so newly created branches are available automatically. Enter accepts the suggested branch: the last successful choice, the installed template's published branch, or main for older copies without branch metadata. A deleted branch requires an explicit new choice; cancellation, missing input or discovery errors stop without applying an update. Agents should ask the user for a branch and pass that choice with `--branch`; `--list-branches` returns all available names as JSON. A current project reports `Already up to date` and makes no writes or backup. `--source` stays offline, skips the prompt and cannot be combined with `--branch`.
 
 The selected branch is resolved through [GitHub's branch API](https://docs.github.com/en/rest/branches/branches) to one commit. The updater downloads that archive and verifies its runtime files against `.updater/Template-Manifest.json`, including its branch when recorded. Tags and similarly named branches are never substituted. Windows downloads use verified native HTTPS/certificate-chain support. `--check` writes nothing to the project. Download, archive/path and hash failures stop before changing it. Apply updates at a saved checkpoint, then restart agent sessions to reload saved instructions/catalogs; the updater never starts/closes an application or operates a printer.
 

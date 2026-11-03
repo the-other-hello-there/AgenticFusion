@@ -362,8 +362,9 @@
     },
     {
       "path": ".updater/README.md",
-      "sha256": "47024d43921582609b7dafaa7f34d67fa6504509cb8bad2e7929fa00f3b9c55b",
+      "sha256": "00383dc054c91e3e4b1669bae6c18fe1e15c18a97f3248c99169bbc9fbe9ec21",
       "previous_sha256": [
+        "47024d43921582609b7dafaa7f34d67fa6504509cb8bad2e7929fa00f3b9c55b",
         "5cd1da2bb663529defa91f08f23e6122e0f6eede05feff03608be7098e1e6abf",
         "9b9af9a821e426e6f6ef9001edd236d24afdca2f2ee2ece52ad2503dd4402fd7"
       ],
