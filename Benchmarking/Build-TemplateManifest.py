@@ -11,7 +11,7 @@ PACKAGE = ROOT / "AgenticFusionTemplate"
 MANIFEST = ".updater/Template-Manifest.json"
 LEGACY_MANIFEST = "Template-Manifest.json"
 RENAMED = {'updater.bat': 'Update-Template.bat', '.updater/update_template.py': '.agents/scripts/update_template.py'}
-PRESERVE = {"FDM-Slicing.md", "Printers.json", ".mcp.json", "settings.json", ".codex/config.toml"}
+PRESERVE = {"FDM-Slicing.md", "Printers.json", "Review-Policy.json", ".mcp.json", "settings.json", ".codex/config.toml"}
 
 
 def digest(data):
@@ -56,7 +56,10 @@ def build(include_history=True):
         current = digest((PACKAGE / name).read_bytes())
         entries.append({"path": name, "sha256": current, "previous_sha256": sorted(prior - {current}),
                         "policy": "preserve" if name in PRESERVE else "managed"})
-    return {"schema_version": 1, "repository": "the-other-hello-there/AgenticFusion", "hash_mode": "utf8-lf", "files": entries,
+    branch = subprocess.check_output(['git', 'branch', '--show-current'], cwd=ROOT).decode().strip()
+    if not branch:
+        raise ValueError('Build the manifest on its intended publishing branch')
+    return {"schema_version": 1, "repository": "the-other-hello-there/AgenticFusion", "hash_mode": "utf8-lf", "branch": branch, "files": entries,
             "retired_files": [{'path': name, 'sha256': sorted(hashes)} for name, hashes in sorted(retired.items()) if name not in names and name != MANIFEST]}
 
 

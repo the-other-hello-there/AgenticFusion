@@ -2,6 +2,7 @@
   "schema_version": 1,
   "repository": "the-other-hello-there/AgenticFusion",
   "hash_mode": "utf8-lf",
+  "branch": "feature/self-benchmarking",
   "files": [
     {
       "path": ".agents/.claude-plugin/plugin.json",
@@ -304,9 +305,10 @@
     },
     {
       "path": ".agents/skills/project-resources/SKILL.md",
-      "sha256": "e4de9fbecfe6e1896c508abbc6da00260221699468bd0103784d22129d53794c",
+      "sha256": "cafffd8ed479588fe8053caf29a8bbb9b80d5077f33c014b852db7157b83ca75",
       "previous_sha256": [
-        "43b3d8ee52ddbf29643a33573370a60c4764ac3c88bd594d60d4f043b34cb268"
+        "43b3d8ee52ddbf29643a33573370a60c4764ac3c88bd594d60d4f043b34cb268",
+        "e4de9fbecfe6e1896c508abbc6da00260221699468bd0103784d22129d53794c"
       ],
       "policy": "managed"
     },
@@ -360,14 +362,17 @@
     },
     {
       "path": ".updater/README.md",
-      "sha256": "5cd1da2bb663529defa91f08f23e6122e0f6eede05feff03608be7098e1e6abf",
-      "previous_sha256": [],
+      "sha256": "9b9af9a821e426e6f6ef9001edd236d24afdca2f2ee2ece52ad2503dd4402fd7",
+      "previous_sha256": [
+        "5cd1da2bb663529defa91f08f23e6122e0f6eede05feff03608be7098e1e6abf"
+      ],
       "policy": "managed"
     },
     {
       "path": ".updater/update_template.py",
-      "sha256": "a1b96e9eaa3b8309ce67b897f609650eceb1049504e0cb17e37d8c8a72ae71cb",
+      "sha256": "6f64bdf6aa1e0fadcaa29916b46b2ad4c8f829bd1b847c9124a20b0423c0c02d",
       "previous_sha256": [
+        "a1b96e9eaa3b8309ce67b897f609650eceb1049504e0cb17e37d8c8a72ae71cb",
         "d9e65accb0cd8882a36d2de93816c4fe6f6cbde048570453ab6f2138e9de0d00"
       ],
       "policy": "managed"

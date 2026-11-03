@@ -4,7 +4,7 @@ Run `Run-Benchmark.bat` from this folder for a guided Windows benchmark. It copi
 
 ## Benchmark prompts
 
-Run `py -3 Benchmarking/Test-TemplateUpdate.py` for update ownership, custom-file preservation, historical fingerprint adoption, archive verification, conflicts, rollback/concurrent edits and shared project-skill registration. Fixtures use disposable copies and simulated downloads, without GitHub writes or model calls. After runtime edits, run `py -3 Benchmarking/Build-TemplateManifest.py` to regenerate fingerprints, or add `--check` to verify them. Keep generated project resources out of the source package.
+Run `py -3 Benchmarking/Test-TemplateUpdate.py` for branch discovery/prompts, explicit/offline selection, branch-switch policy preservation, update ownership, custom-file preservation, historical fingerprint adoption, archive verification, conflicts, rollback/concurrent edits and shared project-skill registration. Fixtures use disposable copies and simulated downloads, without GitHub writes or model calls. After runtime edits, run `py -3 Benchmarking/Build-TemplateManifest.py` to regenerate fingerprints, or add `--check` to verify them. Keep generated project resources out of the source package.
 
 Run `py -3 Benchmarking/Test-AgentInstallation.py` to check the launchers' missing-CLI permission prompts, selected-agent installation, PATH discovery, version verification, failure handling and immediate startup continuation. It uses fake CLIs and substitutes downloads/installers in disposable child processes; it never installs software or changes the user's PATH. Both `--setup-only` variants must remain free of installation prompts/downloads and application launches.
 
