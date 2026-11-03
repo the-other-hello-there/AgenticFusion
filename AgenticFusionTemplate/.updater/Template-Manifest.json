@@ -2,7 +2,7 @@
   "schema_version": 1,
   "repository": "the-other-hello-there/AgenticFusion",
   "hash_mode": "utf8-lf",
-  "branch": "feature/budgeted-independent-review",
+  "branch": "secondary-agent-verification",
   "files": [
     {
       "path": ".agents/.claude-plugin/plugin.json",
@@ -400,18 +400,20 @@
     },
     {
       "path": ".updater/README.md",
-      "sha256": "9b9af9a821e426e6f6ef9001edd236d24afdca2f2ee2ece52ad2503dd4402fd7",
+      "sha256": "47024d43921582609b7dafaa7f34d67fa6504509cb8bad2e7929fa00f3b9c55b",
       "previous_sha256": [
         "5cd1da2bb663529defa91f08f23e6122e0f6eede05feff03608be7098e1e6abf",
+        "9b9af9a821e426e6f6ef9001edd236d24afdca2f2ee2ece52ad2503dd4402fd7",
         "9e9678d48f4f7b2bd4f9b4db222a6ef9d6deaeb7f8a5fe8bbff569c2c9ec7422"
       ],
       "policy": "managed"
     },
     {
       "path": ".updater/update_template.py",
-      "sha256": "6f64bdf6aa1e0fadcaa29916b46b2ad4c8f829bd1b847c9124a20b0423c0c02d",
+      "sha256": "f0014be857e1a0b333f29ef5bc9b57149bbb477f515929996f65797164880e92",
       "previous_sha256": [
         "39446fefaa8ec4ededd9f26b37c40ee8d052af0c97f450bf851da014f6dceab5",
+        "6f64bdf6aa1e0fadcaa29916b46b2ad4c8f829bd1b847c9124a20b0423c0c02d",
         "a1b96e9eaa3b8309ce67b897f609650eceb1049504e0cb17e37d8c8a72ae71cb",
         "d9e65accb0cd8882a36d2de93816c4fe6f6cbde048570453ab6f2138e9de0d00"
       ],

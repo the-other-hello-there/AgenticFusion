@@ -75,8 +75,8 @@ To upgrade a project that lacks `updater.bat` or still uses `Update-Template.bat
 ```powershell
 .\updater.bat --project-dir 'C:\Designs\Existing project' --check
 .\updater.bat --project-dir 'C:\Designs\Existing project'
-.\updater.bat --branch 'feature/budgeted-independent-review' --check
-.\updater.bat --branch 'feature/budgeted-independent-review'
+.\updater.bat --branch 'secondary-agent-verification' --check
+.\updater.bat --branch 'secondary-agent-verification'
 .\updater.bat --list-branches
 .\updater.bat --project-dir 'C:\Designs\Existing project' --source 'C:\Downloads\AgenticFusion-main\AgenticFusionTemplate'
 ```
@@ -242,6 +242,14 @@ The [benchmark guide](Benchmarking/Benchmarking.md) also lists slicer protocol/d
 Only the inner template is distributed. Keep benchmark sandboxes, Python caches, application installs and agent runtime data outside that folder. Exploration work stays outside the main branch.
 
 ## Changelog
+
+### v2026.11.03
+
+- Updater previews now report when the selected branch is already up to date, and obsolete files are removed only when they were owned by the installed version.
+
+### v2026.11.02
+
+- Secondary agent verification updates use the `secondary-agent-verification` branch.
 
 ### v2026.11.01
 

@@ -250,7 +250,12 @@ def get_source(directory=None, branch='main'):
             root = root / "AgenticFusionTemplate"
         raw = safe_path(root, MANIFEST).read_bytes()
         manifest = load_manifest(raw)
-        files = {name: safe_path(root, name).read_bytes() for name in manifest}
+        files = {}
+        for name in manifest:
+            path = safe_path(root, name)
+            if not path.is_file():
+                raise UpdateError(f"Offline template is missing a regular file listed in its manifest: {name}")
+            files[name] = path.read_bytes()
         revision = "local-" + digest(raw)[:12]
     else:
         branch = branch_name(branch)
@@ -266,8 +271,10 @@ def get_source(directory=None, branch='main'):
             members = package.infolist()
             def read(name):
                 matches = [item for item in members if item.filename == prefix + name]
+                if not matches:
+                    raise UpdateError(f"Archive for branch {branch} at {revision} is missing expected entry {prefix + name}. Publish an updater-capable template with this file and manifest to the selected branch first.")
                 if len(matches) != 1 or matches[0].file_size > 2 * 1024 * 1024 or stat.S_ISLNK(matches[0].external_attr >> 16):
-                    raise UpdateError(f"Missing, duplicate or unsafe package entry: {name}. Publish the updater-capable template to the selected branch first.")
+                    raise UpdateError(f"Duplicate or unsafe package entry: {name}")
                 return package.read(matches[0])
             raw = read(MANIFEST)
             manifest = load_manifest(raw)
@@ -393,11 +400,37 @@ def plan_update(project, manifest, files, retired=None):
             continue
         before = path.read_bytes()
         current = digest(before)
-        if current in fingerprints and (name not in baseline or current == baseline[name]):
+        was_managed = name in baseline and current == baseline[name]
+        is_legacy_manifest = name == LEGACY_MANIFEST and current in fingerprints
+        if current in fingerprints and (was_managed or is_legacy_manifest):
             operations[name] = (before, None)
         elif name not in preserved:
             preserved.append(name)
     return operations, conflicts, preserved, next_baseline
+
+
+def add_metadata_operations(project, operations, raw, branch, baseline):
+    manifest_path = safe_path(project, MANIFEST)
+    if manifest_path.exists() and not manifest_path.is_file():
+        raise UpdateError(f"Updater metadata path is occupied by a directory: {MANIFEST}")
+    manifest_before = manifest_path.read_bytes() if manifest_path.is_file() else None
+    if manifest_before is None or digest(manifest_before) != digest(raw):
+        operations[MANIFEST] = (manifest_before, raw)
+
+    state_path = safe_path(project, STATE)
+    if state_path.exists() and not state_path.is_file():
+        raise UpdateError(f"Updater metadata path is occupied by a directory: {STATE}")
+    state_before = state_path.read_bytes() if state_path.is_file() else None
+    state_branch = branch or preferred_branch(project)
+    if state_before is None:
+        state_changed = True
+    else:
+        state = json.loads(state_before.decode("utf-8-sig"))
+        state_changed = state.get("branch") != state_branch or state.get("files") != baseline
+    if state_changed:
+        state_after = json.dumps({"schema_version": 1, "revision": "", "branch": state_branch,
+                                  "files": baseline}, indent=2).encode() + b"\n"
+        operations[STATE] = (state_before, state_after)
 
 
 def apply_update(project, raw, manifest, files, revision, check=False, branch=None):
@@ -413,13 +446,18 @@ def apply_update(project, raw, manifest, files, revision, check=False, branch=No
     if set(manifest).intersection(retired):
         raise UpdateError('A template file cannot be both active and retired')
     operations, conflicts, preserved, baseline = plan_update(project, manifest, files, retired)
-    report = {"revision": revision, "status": "conflicts" if conflicts else "check" if check else "updated",
-              "branch": branch, "changes": list(operations), "conflicts": conflicts, "preserved": preserved}
+    if not conflicts:
+        add_metadata_operations(project, operations, raw, branch, baseline)
+    status = "conflicts" if conflicts else "up_to_date" if not operations else "check" if check else "updated"
+    report = {"revision": revision, "status": status, "branch": branch,
+              "changes": list(operations), "conflicts": conflicts, "preserved": preserved}
     if check:
         return report
     with update_lock(project):
         # Re-plan under the lock, then verify all observed bytes again before writing.
         operations, conflicts, preserved, baseline = plan_update(project, manifest, files, retired)
+        if not conflicts:
+            add_metadata_operations(project, operations, raw, branch, baseline)
         report.update(changes=list(operations), conflicts=conflicts, preserved=preserved)
         run = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:10]
         if conflicts:
@@ -428,11 +466,14 @@ def apply_update(project, raw, manifest, files, revision, check=False, branch=No
                 atomic_write(safe_path(project, incoming + "/" + name), files[name])
             report.update(status="conflicts", incoming=incoming)
             return report
-        state = json.dumps({"schema_version": 1, "revision": revision, "branch": branch or preferred_branch(project),
-                            "files": baseline}, indent=2).encode() + b"\n"
-        for name, data in [(MANIFEST, raw), (STATE, state)]:
-            path = safe_path(project, name)
-            operations[name] = (path.read_bytes() if path.is_file() else None, data)
+        if not operations:
+            report.update(status="up_to_date")
+            return report
+        if STATE in operations:
+            before, state_after = operations[STATE]
+            state = json.loads(state_after.decode("utf-8-sig"))
+            state["revision"] = revision
+            operations[STATE] = (before, json.dumps(state, indent=2).encode() + b"\n")
         backup = ".updater/backups/" + run
         for name, (before, after) in operations.items():
             path = safe_path(project, name)
@@ -491,6 +532,8 @@ def main():
         raw, manifest, files, revision = get_source(args.source, branch=branch)
         report = apply_update(project, raw, manifest, files, revision, args.check, branch=branch)
         print(json.dumps(report, indent=2))
+        if report["status"] == "up_to_date":
+            print(f"Already up to date on {report['branch'] or 'the selected source'}.")
         if report["conflicts"]:
             print("Local template edits were preserved. Review incoming candidates, move project-only rules into Project/, then rerun.", file=sys.stderr)
             return 2

@@ -75,7 +75,42 @@ class UpdateChecks(unittest.TestCase):
         for name, data in self.new.items():
             self.assertEqual((self.project / name).read_bytes(), data)
         self.assertTrue((self.project / report["backup"] / "Agentic-Fusion.md").is_file())
-        self.assertEqual(self.apply(source)["changes"], [])
+        current = self.apply(source)
+        self.assertEqual(current["status"], "up_to_date")
+        self.assertEqual(current["changes"], [])
+
+    def test_up_to_date_preview_and_apply_are_explicit_and_do_not_write(self):
+        self.apply()
+        before = {path.relative_to(self.project): path.read_bytes()
+                  for path in self.project.rglob("*") if path.is_file()}
+        preview = self.apply(check=True)
+        self.assertEqual(preview["status"], "up_to_date")
+        self.assertEqual(preview["changes"], [])
+        self.assertNotIn("backup", preview)
+        result = self.apply()
+        self.assertEqual(result["status"], "up_to_date")
+        self.assertNotIn("backup", result)
+        after = {path.relative_to(self.project): path.read_bytes()
+                 for path in self.project.rglob("*") if path.is_file()}
+        self.assertEqual(before, after)
+
+    def test_branch_switch_with_identical_files_updates_only_branch_metadata(self):
+        self.apply()
+        raw, entries = manifest(self.new, branch="secondary-agent-verification")
+        result = update.apply_update(self.project, raw, entries, self.new, "branch-revision",
+                                     branch="secondary-agent-verification")
+        self.assertEqual(result["status"], "updated")
+        self.assertEqual(result["changes"], [update.MANIFEST, update.STATE])
+        self.assertEqual(update.preferred_branch(self.project), "secondary-agent-verification")
+        current = update.apply_update(self.project, raw, entries, self.new, "branch-revision",
+                                      branch="secondary-agent-verification")
+        self.assertEqual(current["status"], "up_to_date")
+
+    def test_distributed_manifest_defaults_to_its_own_branch(self):
+        installed_branch = update.manifest_branch((PACKAGE / update.MANIFEST).read_bytes())
+        expected = subprocess.check_output(
+            ["git", "branch", "--show-current"], cwd=ROOT, text=True).strip()
+        self.assertEqual(installed_branch, expected)
 
     def test_review_branch_package_upgrade_preserves_review_policy_and_runtime(self):
         review_files = {name: (PACKAGE / name).read_bytes() for name in (
@@ -191,6 +226,16 @@ class UpdateChecks(unittest.TestCase):
             update.get_source(source)
         self.assertEqual((self.project / "Agentic-Fusion.md").read_bytes(), self.old["Agentic-Fusion.md"])
 
+    def test_offline_source_reports_the_missing_manifest_listed_file(self):
+        source = self.root / "incomplete source"
+        source.mkdir()
+        raw, _ = manifest(self.new)
+        (source / update.MANIFEST).parent.mkdir(parents=True)
+        (source / update.MANIFEST).write_bytes(raw)
+        (source / "Agentic-Fusion.md").write_bytes(self.new["Agentic-Fusion.md"])
+        with self.assertRaisesRegex(update.UpdateError, r"manifest: \.agents/scripts/tool\.py"):
+            update.get_source(source)
+
     def test_github_download_pins_archive_to_commit_and_rejects_missing_manifest(self):
         revision = "a" * 40
         raw, _ = manifest(self.new)
@@ -200,7 +245,7 @@ class UpdateChecks(unittest.TestCase):
             archive.writestr(prefix + update.MANIFEST, raw)
             for name, data in self.new.items():
                 archive.writestr(prefix + name, data)
-        for branch in ['main', 'feature/self-benchmarking', 'feature/budgeted-independent-review']:
+        for branch in ['main', 'feature/self-benchmarking', 'secondary-agent-verification']:
             response = json.dumps({'name': branch, 'commit': {'sha': revision}}).encode()
             with self.subTest(branch=branch), mock.patch.object(update, "download", side_effect=[response, buffer.getvalue()]) as request:
                 result = update.get_source(branch=branch)
@@ -212,6 +257,14 @@ class UpdateChecks(unittest.TestCase):
         with zipfile.ZipFile(empty, "w"):
             pass
         with mock.patch.object(update, "download", side_effect=[json.dumps({'name': 'main', 'commit': {"sha": revision}}).encode(), empty.getvalue()]), self.assertRaisesRegex(update.UpdateError, "Publish"):
+            update.get_source()
+        incomplete = io.BytesIO()
+        with zipfile.ZipFile(incomplete, "w") as archive:
+            prefix = f"AgenticFusion-{revision}/AgenticFusionTemplate/"
+            archive.writestr(prefix + update.MANIFEST, raw)
+            archive.writestr(prefix + "Agentic-Fusion.md", self.new["Agentic-Fusion.md"])
+        response = json.dumps({'name': 'main', 'commit': {'sha': revision}}).encode()
+        with mock.patch.object(update, "download", side_effect=[response, incomplete.getvalue()]), self.assertRaisesRegex(update.UpdateError, r"missing expected entry .*\.agents/scripts/tool\.py"):
             update.get_source()
 
     def test_branch_listing_is_paginated_sorted_and_validated(self):
@@ -249,7 +302,7 @@ class UpdateChecks(unittest.TestCase):
         self.assertEqual(update.preferred_branch(self.project), 'main')
 
     def test_branch_prompt_supports_names_numbers_and_saved_suggestion(self):
-        names = ['main', 'feature/budgeted-independent-review', 'feature/self-benchmarking']
+        names = ['main', 'secondary-agent-verification', 'feature/self-benchmarking']
         self.write({update.STATE: json.dumps({'schema_version': 1, 'branch': names[1], 'files': {}}).encode()})
         before = {p.relative_to(self.project): p.read_bytes() for p in self.project.rglob('*') if p.is_file()}
         for answer, expected in [('1', 'main'), ('', names[1]), (names[2], names[2])]:
@@ -318,7 +371,7 @@ class UpdateChecks(unittest.TestCase):
         review = dict(self.new, **{'Independent-Review.md': b'review guide', 'Review-Policy.json': b'stock policy', '.agents/scripts/review_guard.py': b'review runtime'})
         policy = b'custom bounded reviewer and meter'
         self.write({'Review-Policy.json': policy, 'Project.md': b'current design', '.agents/skills/custom/SKILL.md': b'custom skill'})
-        for branch, files in [('feature/budgeted-independent-review', review), ('main', self.new), ('feature/budgeted-independent-review', review)]:
+        for branch, files in [('secondary-agent-verification', review), ('main', self.new), ('secondary-agent-verification', review)]:
             raw, entries = manifest(files, branch=branch)
             report = update.apply_update(self.project, raw, entries, files, 'test', branch=branch)
             self.assertEqual(report['status'], 'updated')
@@ -343,6 +396,15 @@ class UpdateChecks(unittest.TestCase):
             update.main()
         self.assertEqual(stopped.exception.code, 2)
         self.assertFalse((self.project / update.STATE).exists())
+
+    def test_cli_reports_when_the_selected_branch_is_already_up_to_date(self):
+        raw, entries = manifest(self.new, branch="main")
+        update.apply_update(self.project, raw, entries, self.new, "revision", branch="main")
+        with mock.patch("sys.argv", ["updater", "--project-dir", str(self.project), "--branch", "main"]), \
+             mock.patch.object(update, "get_source", return_value=(raw, entries, self.new, "revision")), \
+             mock.patch("sys.stdout", new=io.StringIO()) as output:
+            self.assertEqual(update.main(), 0)
+        self.assertIn("Already up to date on main.", output.getvalue())
 
     def test_filesystem_links_are_rejected_without_mutating_targets(self):
         external = self.root / "outside"
@@ -404,6 +466,21 @@ class UpdateChecks(unittest.TestCase):
         for name in ['Project.md', 'Project/Context/evidence.md', update.STATE, update.MANIFEST]:
             with self.subTest(path=name), self.assertRaises(update.UpdateError):
                 self.apply(retired={name: [update.digest(b'keep this')]})
+
+    def test_retired_fingerprint_only_removes_files_owned_by_the_old_manifest(self):
+        name = ".agents/scripts/retired-tool.py"
+        stock = b"old template utility"
+        self.write({name: stock})
+        report = self.apply(retired={name: [update.digest(stock)]})
+        self.assertIn(name, report["preserved"])
+        self.assertEqual((self.project / name).read_bytes(), stock)
+
+        old_raw, _ = manifest({**self.old, name: stock})
+        self.write({update.MANIFEST: old_raw, name: stock})
+        (self.project / update.STATE).unlink()
+        report = self.apply(retired={name: [update.digest(stock)]})
+        self.assertNotIn(name, report["preserved"])
+        self.assertFalse((self.project / name).exists())
 
     def test_update_only_runs_keep_new_metadata_out_of_project_folder(self):
         self.apply()

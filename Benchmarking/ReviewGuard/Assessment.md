@@ -1,6 +1,6 @@
 # Independent-review parity assessment
 
-Assessment date: 2026-11-01. Branch: `feature/budgeted-independent-review`.
+Assessment date: 2026-11-01. Branch: `secondary-agent-verification`.
 
 ## Current result
 
