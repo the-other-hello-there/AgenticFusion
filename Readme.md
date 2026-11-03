@@ -2,7 +2,7 @@
 
 A portable Windows folder for Autodesk Fusion's local MCP server with **Claude Code or Codex**. Copy [`AgenticFusionTemplate/`](AgenticFusionTemplate/) for each project; either launcher prepares shared files and starts Fusion and the chosen agent.
 
-**Download this branch's standalone template:** [AgenticFusionTemplate ZIP](https://github.com/the-other-hello-there/AgenticFusion/releases/download/template-downloads/AgenticFusionTemplate-experimental-feature-self-benchmarking.zip). The ZIP contains only `AgenticFusionTemplate/`; it is refreshed automatically after changes are pushed to this branch.
+**Download this branch's standalone template:** [AgenticFusionTemplate ZIP](https://github.com/the-other-hello-there/AgenticFusion/releases/download/template-downloads/AgenticFusionTemplate-experimental-feature-self-benchmarking.zip?download=1). The ZIP contains only `AgenticFusionTemplate/`; it is refreshed automatically after changes are pushed to this branch.
 
 ## Dependencies
 
