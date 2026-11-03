@@ -96,14 +96,14 @@ class UpdateChecks(unittest.TestCase):
 
     def test_branch_switch_with_identical_files_updates_only_branch_metadata(self):
         self.apply()
-        raw, entries = manifest(self.new, branch="secondary-agent-verification")
+        raw, entries = manifest(self.new, branch="experimental-feature/secondary-agent-verification")
         result = update.apply_update(self.project, raw, entries, self.new, "branch-revision",
-                                     branch="secondary-agent-verification")
+                                     branch="experimental-feature/secondary-agent-verification")
         self.assertEqual(result["status"], "updated")
         self.assertEqual(result["changes"], [update.MANIFEST, update.STATE])
-        self.assertEqual(update.preferred_branch(self.project), "secondary-agent-verification")
+        self.assertEqual(update.preferred_branch(self.project), "experimental-feature/secondary-agent-verification")
         current = update.apply_update(self.project, raw, entries, self.new, "branch-revision",
-                                      branch="secondary-agent-verification")
+                                      branch="experimental-feature/secondary-agent-verification")
         self.assertEqual(current["status"], "up_to_date")
 
     def test_distributed_manifest_defaults_to_its_own_branch(self):
@@ -245,7 +245,9 @@ class UpdateChecks(unittest.TestCase):
             archive.writestr(prefix + update.MANIFEST, raw)
             for name, data in self.new.items():
                 archive.writestr(prefix + name, data)
-        for branch in ['main', 'feature/self-benchmarking', 'secondary-agent-verification']:
+        for branch in ['main', 'experimental-feature/self-benchmarking',
+                       'experimental-feature/secondary-agent-verification',
+                       'experimental-feature/new-branch-created-after-release']:
             response = json.dumps({'name': branch, 'commit': {'sha': revision}}).encode()
             with self.subTest(branch=branch), mock.patch.object(update, "download", side_effect=[response, buffer.getvalue()]) as request:
                 result = update.get_source(branch=branch)
@@ -302,10 +304,12 @@ class UpdateChecks(unittest.TestCase):
         self.assertEqual(update.preferred_branch(self.project), 'main')
 
     def test_branch_prompt_supports_names_numbers_and_saved_suggestion(self):
-        names = ['main', 'secondary-agent-verification', 'feature/self-benchmarking']
+        names = ['main', 'experimental-feature/secondary-agent-verification',
+                 'experimental-feature/self-benchmarking',
+                 'new-branch/that-was-not-hardcoded']
         self.write({update.STATE: json.dumps({'schema_version': 1, 'branch': names[1], 'files': {}}).encode()})
         before = {p.relative_to(self.project): p.read_bytes() for p in self.project.rglob('*') if p.is_file()}
-        for answer, expected in [('1', 'main'), ('', names[1]), (names[2], names[2])]:
+        for answer, expected in [('1', 'main'), ('', names[1]), (names[3], names[3])]:
             with mock.patch.object(update, 'list_branches', return_value=names), mock.patch('builtins.input', return_value=answer) as prompt, mock.patch('sys.stdout', new=io.StringIO()):
                 self.assertEqual(update.choose_branch(self.project), expected)
                 self.assertIn('Enter: ' + names[1], prompt.call_args.args[0])
@@ -371,7 +375,8 @@ class UpdateChecks(unittest.TestCase):
         review = dict(self.new, **{'Independent-Review.md': b'review guide', 'Review-Policy.json': b'stock policy', '.agents/scripts/review_guard.py': b'review runtime'})
         policy = b'custom bounded reviewer and meter'
         self.write({'Review-Policy.json': policy, 'Project.md': b'current design', '.agents/skills/custom/SKILL.md': b'custom skill'})
-        for branch, files in [('secondary-agent-verification', review), ('main', self.new), ('secondary-agent-verification', review)]:
+        review_branch = 'experimental-feature/secondary-agent-verification'
+        for branch, files in [(review_branch, review), ('main', self.new), (review_branch, review)]:
             raw, entries = manifest(files, branch=branch)
             report = update.apply_update(self.project, raw, entries, files, 'test', branch=branch)
             self.assertEqual(report['status'], 'updated')

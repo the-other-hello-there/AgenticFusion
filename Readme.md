@@ -75,8 +75,8 @@ To upgrade a project that lacks `updater.bat` or still uses `Update-Template.bat
 ```powershell
 .\updater.bat --project-dir 'C:\Designs\Existing project' --check
 .\updater.bat --project-dir 'C:\Designs\Existing project'
-.\updater.bat --branch 'secondary-agent-verification' --check
-.\updater.bat --branch 'secondary-agent-verification'
+.\updater.bat --branch 'experimental-feature/secondary-agent-verification' --check
+.\updater.bat --branch 'experimental-feature/secondary-agent-verification'
 .\updater.bat --list-branches
 .\updater.bat --project-dir 'C:\Designs\Existing project' --source 'C:\Downloads\AgenticFusion-main\AgenticFusionTemplate'
 ```
@@ -245,11 +245,12 @@ Only the inner template is distributed. Keep benchmark sandboxes, Python caches,
 
 ### v2026.11.03
 
+- Renamed the experiments to `experimental-feature/self-benchmarking` and `experimental-feature/secondary-agent-verification`; the updater discovers available branches dynamically instead of maintaining a branch-name list.
 - Updater previews now report when the selected branch is already up to date, and obsolete files are removed only when they were owned by the installed version.
 
 ### v2026.11.02
 
-- Secondary agent verification updates use the `secondary-agent-verification` branch.
+- Secondary agent verification updates used `secondary-agent-verification` before its rename to `experimental-feature/secondary-agent-verification`.
 
 ### v2026.11.01
 
