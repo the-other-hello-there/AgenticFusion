@@ -229,6 +229,7 @@ Only the inner template is distributed. Keep benchmark sandboxes, Python caches,
 
 ### v2026.11.03
 
+- Renamed the independent-review branch to `secondary-agent-verification` and synchronized branch-specific updater defaults.
 - Updater previews now report when the selected branch is already up to date, and obsolete files are removed only when they were owned by the installed version.
 
 ### v2026.11.01
