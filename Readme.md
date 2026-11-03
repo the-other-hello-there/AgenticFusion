@@ -66,19 +66,24 @@ Read relevant project procedures through `Project.md` and keep their relative sc
 
 ### Update an existing project
 
-From the copied project folder, run `.\updater.bat --check` to preview or `.\updater.bat --project-dir .` to apply. The updater resolves [this repository's main branch](https://github.com/the-other-hello-there/AgenticFusion/tree/main) to one commit and verifies the downloaded template against its fingerprint manifest. It requires Python 3.11+ and PowerShell, without Git or additional packages. It runs only when requested; ordinary launch/setup never downloads template updates or restarts applications.
+From the copied project folder, run `.\updater.bat --check` to preview or `.\updater.bat --project-dir .` to apply. The updater lists [this repository's available branches](https://github.com/the-other-hello-there/AgenticFusion/branches) and prompts for a number or branch name. Enter accepts the suggested branch: the last successful selection, the installed template's published branch, or main for older copies. Choose the matching experimental branch to retain its features. Agents and scripts can pass the user's choice explicitly with `--branch`; `--list-branches` returns the available names as JSON. A missing/deleted branch or unavailable input never silently switches to another branch.
+
+The selected branch is pinned to one commit and the downloaded template is verified against its fingerprint manifest. The updater requires Python 3.11+ and PowerShell, without Git or additional packages. It runs only when requested; ordinary launch/setup never downloads template updates or restarts applications.
 
 To upgrade a project that lacks `updater.bat` or still uses `Update-Template.bat`, download and extract the [main-branch ZIP](https://github.com/the-other-hello-there/AgenticFusion/archive/refs/heads/main.zip), open its inner `AgenticFusionTemplate/` folder, and run the updater there with the existing project's path. An offline source is also supported:
 
 ```powershell
 .\updater.bat --project-dir 'C:\Designs\Existing project' --check
 .\updater.bat --project-dir 'C:\Designs\Existing project'
+.\updater.bat --branch 'secondary-agent-verification' --check
+.\updater.bat --branch 'secondary-agent-verification'
+.\updater.bat --list-branches
 .\updater.bat --project-dir 'C:\Designs\Existing project' --source 'C:\Downloads\AgenticFusion-main\AgenticFusionTemplate'
 ```
 
 The updater implementation, manifest and guide live in `.updater/`, beside the root `updater.bat`. New state, incoming candidates and recovery files stay in that folder. The fresh updater reads older ownership metadata and preserves old recovery history; see the [layout migration instructions](AgenticFusionTemplate/.updater/README.md#upgrade-the-former-updater-layout).
 
-`Project.md`, project skills/context, CAD/exports and unknown added files stay outside upstream ownership. Existing printer definitions, slicing preferences and MCP/agent settings are preserved. Template resources update only when they match a recorded or known historical stock fingerprint. A locally edited template file or unknown path collision holds the entire update and stages incoming candidates under `.updater/incoming/`; it never silently overwrites those edits. Arbitrary code/instruction conflicts need a deliberate merge.
+`Project.md`, project skills/context, CAD/exports and unknown added files stay outside upstream ownership. Existing printer definitions, slicing preferences, independent-review policy and MCP/agent settings are preserved, including across branch changes. The selected branch is remembered only after a successful update; preview, cancellation and failed updates do not change it. `--source` uses an offline template without prompting or network access and cannot be combined with `--branch`. Template resources update only when they match a recorded or known historical stock fingerprint. A locally edited template file or unknown path collision holds the entire update and stages incoming candidates under `.updater/incoming/`; it never silently overwrites those edits. Arbitrary code/instruction conflicts need a deliberate merge.
 
 Verified updates retain recovery copies and a journal under `.updater/backups/`. Write failures trigger rollback; concurrent user edits are retained and reported. `--check` does not change the project. Apply updates at a saved checkpoint and restart agent sessions afterward to reload their instructions and skills. See the [updater guide](AgenticFusionTemplate/.updater/README.md) for ownership, recovery and discovery details.
 
@@ -222,8 +227,13 @@ Only the inner template is distributed. Keep benchmark sandboxes, Python caches,
 
 ## Changelog
 
+### v2026.11.03
+
+- Updater previews now report when the selected branch is already up to date, and obsolete files are removed only when they were owned by the installed version.
+
 ### v2026.11.01
 
+- The updater prompts for an available branch, accepts explicit branch selection for scripts, remembers successful choices and preserves independent-review policy across branch changes.
 - Renamed the update command to `updater.bat`; older projects can migrate using the fresh updater while preserving project content and customized old files.
 - Added verified template updates that preserve project files/preferences and added skills, hold local edit conflicts, and retain recovery copies with rollback.
 - Added shared project-specific skill/context creation under `Project/`, indexed from root `Project.md` and discoverable in both agents through generated metadata entries.
