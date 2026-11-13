@@ -35,3 +35,12 @@ Before adding a parameter, search for one with the same meaning; reuse or derive
 
 Expressions support `sin`/`cos`/`tan`/`sqrt`/`^`; unitless parameters use unit `''`. Derive tangent points and other dependent geometry as expressions too.
 
+## Persistent placement, participants and result identity
+
+For a lasting occurrence placement, prefer supported `initialTransform` editing at its creation timeline position over a transient solved `transform2` shift. Roll just after creation (`rollTo(False)`), use the native occurrence, check the installed capability (`isVaildForEditInitialPosition` in the documented API), apply the transform and restore the timeline in `finally`. Pattern-created occurrences may reject it. Verify the full transform and geometry after replay and saved reopen; preserve existing constrained placement. [Initial transform](https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/fusion_Occurrence_initialTransform.htm), [capability spelling](https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/fusion_Occurrence_isVaildForEditInitialPosition.htm).
+
+A rotate MoveFeature on a native subcomponent body may require its sketch-line/construction-axis assembly proxy. Confirm context with a representative trial. Explicitly scope loft join/cut participants as well as extrude/hole participants, then verify other bodies remain unchanged.
+
+Offset, Thicken and kept-tool Combine result collections may include participant or unrelated bodies. Collect results immediately and identify the intended owner, solid/surface type, operation, geometric location, lump count and volume. A zero-offset surface copy followed by thicken is a candidate when thickening solid faces is unsupported. Do not feed all returned bodies into the next cut. Entity-token strings may change or be reused; resolve them through the Design and corroborate identity with geometry/ownership, rather than comparing only strings or names.
+
+Appearance overrides belong in [reference comparison](reference-comparison.md#reproducible-views-and-materials). Use one frame for measurements; occurrence-level interference can miss overlaps or pair internal bodies of the wrong instance. Confirm selected body proxies against a known contact and independently intersect temporary copies, checking Boolean success before reading volume.

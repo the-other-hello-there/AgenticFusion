@@ -6,7 +6,7 @@
   - `dfm_bridge_max` (10 mm);
   - `dfm_ovh_ang` (the project-recorded minimum slope from horizontal of unsupported down-facing faces; see [overhangs-and-bed.md](overhangs-and-bed.md)).
 - **Print orientation ("reorient for 3D printing"):**
-  1. **Don't break the assembly.** Put one instance of each printed component in a separate grounded root component ("Print Layout") with `addExistingComponent`, set `isGroundToParent` on its children, and add no joints. Never move the assembled instances. Leave out purchased parts.
+  1. **Don't break the assembly.** Put one instance of each printed component in a separate grounded root component ("Print Layout") with `addExistingComponent`, set `isGroundToParent` on both that layout root occurrence and its children, and add no joints. Never move the assembled instances. Leave out purchased parts.
   2. Rest every part on Z = 0, in a grid with a gap of about 12 mm and the longer footprint side along X.
   3. **Choose orientation strength-first:**
      - keep the bending or tension direction of thin load-bearing features (arms, prongs, ears, tabs, springs, latches, dovetail flanks) in the layer plane. A cantilever's bending stress runs along its length, so a flexure whose length runs along the build direction bends across the layers;
@@ -22,3 +22,9 @@
   6. **Report** per part: the face chosen and why, where strength overrode support, remaining support, and print quantity (one per assembly instance).
   7. Layout copies add to BOM counts (the API has no BOM-exclusion switch) and inherit their source's occurrence appearance.
 - **Per-part down vector:** record each part's face-down direction in its own component coordinates. All analysis runs on the component's native body in that frame, so the result is the same for every instance.
+
+## Persistent layout and presentation checks
+
+Verify the complete transform, including rotation, after timeline replay and saved reopen; translation-only or conservative plan-box checks are insufficient. Use explicit matrix composition and transform all mesh points for bed/envelope clearance. Recompute support proxies and body-to-bed/part spacing after any orientation change. Check grounding health: a rolled-back Pin feature is not successful placement even if boxes look correct.
+
+Where shared-component visibility cannot isolate printed bodies, use a supported source-linked print representation and verify dependencies instead of hiding assembled geometry as a permanent workaround. Record actual plate/group assignments and quantities. Preserve the assembly's pose and visibility. Make expected colours/visibility part of the reproducible presentation stage, with effective appearance/ancestor checks from [reference comparison](../../fusion-model/references/reference-comparison.md#reproducible-views-and-materials); appearance alone does not establish slicer material assignment.
