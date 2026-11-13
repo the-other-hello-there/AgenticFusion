@@ -11,4 +11,4 @@ Read only the reference matching the observed symptom:
 - [Document and assembly state](references/document-state.md): unexpected component features, occurrence placement, deleted occurrence history, or screenshot appearance.
 - [Geometry failures](references/geometry.md): lost sketch references, blends, fillets, chamfers, bridge steps, or print-specific fixes.
 
-Retain preventive rules in `Agentic-Fusion.md` and, for printing, `fusion-print`. Test in a rollback-capable script where possible; recheck applicable body count, volume, health, constraints, motion, and saved version. Load another symptom family only if evidence calls for it.
+Retain preventive rules in `Agentic-Fusion.md` and, for printing, `fusion-print`. Test in a verified disposable trial where appropriate; an exception does not establish rollback; recheck applicable body count, volume, health, constraints, motion, and saved version. Load another symptom family only if evidence calls for it.

@@ -1,7 +1,6 @@
 ## Documents, components, parameters
 - New documents may default to Part Design, which allows only one component. For multi-component work, set `design.designIntent = AssemblyDesignIntentType` right after `documents.add`.
 - User parameters are document-wide, so they can drive internal components. Externally referenced components keep their own parameters.
-- Parameter expressions support `sin`/`cos`/`tan`/`sqrt`/`^`. Unitless parameters use unit `''`. Derive dependent geometry, such as tangent points, as parameter expressions to keep it parametric.
 - Features in a sub-component:
   - With native inputs (the component's own construction planes, sketches and bodies), build through `comp.sketches` / `comp.features` directly.
   - With proxy inputs, call `occ.activate()` first and pass `createForAssemblyContext(occ)` proxies, then `design.activateRootComponent()`. Otherwise you get "Failed to get owner occurrence transform".
@@ -28,3 +27,20 @@
   - TemporaryBRep booleans between an imported STEP body and a rebuilt look-alike often fail (`ASM_INCONS_REL`, `ASM_BAD_CONTAINMENT`); compare by `body.pointContainment` sampling or plane sections (`TemporaryBRepManager.planeIntersection`) instead. In a plane-section wire, sample each edge strictly inside its parameter range (`getPointAtParameter` at the exact end can raise `invalid argument parameter`).
 - Sketch and feature names share one namespace: a feature named like an existing sketch gets a ` (1)` suffix. Name sketches `<feature> sketch`.
 
+## Parameter design
+
+Drive almost everything from a small set of intent-level parameters (user rule). Give an independent user parameter to a real design choice: cable diameter, wall thickness, clearance, groove angle or interface position. Derive dependent dimensions from those choices and shared datums; do not create a separate user parameter for every edge, copy or calculated offset.
+
+Before adding a parameter, search for one with the same meaning; reuse or derive from it. Promote a hard-coded sketch dimension when a new feature needs to depend on it. Tie names and expressions to function, and inspect all dependents before changing a shared driver. Use direct edits, Replace Face, Split + Remove, planes offset from faces and fills of incidental geometry only very cautiously.
+
+Expressions support `sin`/`cos`/`tan`/`sqrt`/`^`; unitless parameters use unit `''`. Derive tangent points and other dependent geometry as expressions too.
+
+## Persistent placement, participants and result identity
+
+For a lasting occurrence placement, prefer supported `initialTransform` editing at its creation timeline position over a transient solved `transform2` shift. Roll just after creation (`rollTo(False)`), use the native occurrence, check the installed capability (`isVaildForEditInitialPosition` in the documented API), apply the transform and restore the timeline in `finally`. Pattern-created occurrences may reject it. Verify the full transform and geometry after replay and saved reopen; preserve existing constrained placement. [Initial transform](https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/fusion_Occurrence_initialTransform.htm), [capability spelling](https://help.autodesk.com/cloudhelp/ENU/Fusion-360-API/files/fusion_Occurrence_isVaildForEditInitialPosition.htm).
+
+A rotate MoveFeature on a native subcomponent body may require its sketch-line/construction-axis assembly proxy. Confirm context with a representative trial. Explicitly scope loft join/cut participants as well as extrude/hole participants, then verify other bodies remain unchanged.
+
+Offset, Thicken and kept-tool Combine result collections may include participant or unrelated bodies. Collect results immediately and identify the intended owner, solid/surface type, operation, geometric location, lump count and volume. A zero-offset surface copy followed by thicken is a candidate when thickening solid faces is unsupported. Do not feed all returned bodies into the next cut. Entity-token strings may change or be reused; resolve them through the Design and corroborate identity with geometry/ownership, rather than comparing only strings or names.
+
+Appearance overrides belong in [reference comparison](reference-comparison.md#reproducible-views-and-materials). Use one frame for measurements; occurrence-level interference can miss overlaps or pair internal bodies of the wrong instance. Confirm selected body proxies against a known contact and independently intersect temporary copies, checking Boolean success before reading volume.

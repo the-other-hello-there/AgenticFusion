@@ -18,6 +18,8 @@ A portable Windows folder for Autodesk Fusion's local MCP server with **Claude C
 
 Git is needed to clone or maintain this repository, rather than to run a copied project. The template has no `pip` or `npm` package installation step; it can also use agent CLIs already installed through npm. Python and a slicer are optional for ordinary Fusion startup.
 
+Project-authored mesh/photo analyses may optionally use NumPy, SciPy, OpenCV, Shapely or plotting tools. They are needed only for the chosen analysis method; the shipped helpers use the Python standard library.
+
 ## Install Fusion and an agent
 
 1. Install the [Fusion desktop application](https://help.autodesk.com/view/fusion360/ENU/?caas=caas%2Fsfdcarticles%2Fsfdcarticles%2FHow-to-download-Fusion-360.html) and sign in. The local MCP server runs in the desktop application.
@@ -83,7 +85,7 @@ To upgrade a project that lacks `updater.bat` or still uses `Update-Template.bat
 .\updater.bat --project-dir 'C:\Designs\Existing project' --source 'C:\Downloads\AgenticFusion-main\AgenticFusionTemplate'
 ```
 
-The updater implementation, manifest and guide live in `.updater/`, beside the root `updater.bat`. New state, incoming candidates and recovery files stay in that folder. The fresh updater reads older ownership metadata and preserves old recovery history; see the [layout migration instructions](AgenticFusionTemplate/.updater/README.md#upgrade-the-former-updater-layout).
+The updater implementation, manifest and guide live in `.updater/`, beside the root `updater.bat`. Updater state, incoming candidates and recovery files stay in that folder. The fresh updater reads older ownership metadata and preserves old recovery history; see the [layout migration instructions](AgenticFusionTemplate/.updater/README.md#upgrade-the-former-updater-layout).
 
 `Project.md`, project skills/context, CAD/exports and unknown added files stay outside upstream ownership. Existing printer definitions, slicing preferences, independent-review policy and MCP/agent settings are preserved, including across branch changes. The selected branch is remembered only after a successful update; preview, cancellation and failed updates do not change it. `--source` uses an offline template without prompting or network access and cannot be combined with `--branch`. Template resources update only when they match a recorded or known historical stock fingerprint. A locally edited template file or unknown path collision holds the entire update and stages incoming candidates under `.updater/incoming/`; it never silently overwrites those edits. Arbitrary code/instruction conflicts need a deliberate merge.
 
@@ -104,13 +106,15 @@ py -3 .agents/skills/orca-slice/scripts/slicer.py slice --input 'Print Jobs\prep
 
 Discovery reads installation folders, PATH, registry, shortcuts and current-user Store/package registrations without launching slicers. For an unregistered portable installation, add `--executable 'D:\Tools\Orca\orca-slicer.exe'`, or set `ORCA_SLICER_PATH` on this machine. In agent shells, the agent runs `list`, asks you, then passes the chosen ID using `--select`. Store apps use their application identity and file activation rather than a guessed WindowsApps path or default file association.
 
-Slicing prefers the selected build's verified CLI until preview. The core CLI helper records logs/hashes, verifies exported toolpaths, and only then opens results in the same app. Intermediate comparisons can use `--no-open`, followed by UI preview of the final result. If usable CLI or indispensable setup is unavailable headlessly, the agent explains that limitation before using the UI earlier. An embedded MCP server still runs inside a GUI app. Version-independent discovery is not a guarantee that every release has the same slicing APIs. See [startup](AgenticFusionTemplate/.agents/skills/orca-slice/references/startup.md) and [workflow](AgenticFusionTemplate/.agents/skills/orca-slice/references/workflow.md) for commands and optional OrcaMCP configuration. No software installation or printer operation is performed by these helpers.
+Slicing prefers the selected build's verified CLI until preview. The core CLI helper records logs/hashes, verifies exported toolpaths, and only then opens results in the same app. Intermediate comparisons can use `--no-open`, followed by UI preview of the final result. If usable CLI or indispensable setup is unavailable headlessly, the agent explains that limitation before using the UI earlier. An embedded MCP server still runs inside a GUI app. Discovery identifies applications; advertised capabilities determine which steps can be automated. See [startup](AgenticFusionTemplate/.agents/skills/orca-slice/references/startup.md) and [workflow](AgenticFusionTemplate/.agents/skills/orca-slice/references/workflow.md) for commands and optional OrcaMCP configuration. No software installation or printer operation is performed by these helpers.
 
 Keep slicing rules and preferences in [`FDM-Slicing.md`](AgenticFusionTemplate/FDM-Slicing.md), read only for FDM work. Keep verified geometry, selected job profiles, export provenance, and slice results in `Project.md`. Setup copies missing files and preserves a project's existing slicing preferences.
 
-The [slicing workflow, hierarchy and flowchart](AgenticFusionTemplate/.agents/skills/orca-slice/references/workflow.md) separates policy, job coordination, native settings, adaptive/smoothed layer height, support-interface materials, calibration and comparisons. Detailed procedures load on demand. Rules include directly stacked infill by toolpath geometry (gyroid does not qualify), user-declared-final gating for high infill and specific approval before a second support-interface material is applied. Researched sources and build-specific incompatibilities are linked from the relevant procedures.
+The [slicing workflow, hierarchy and flowchart](AgenticFusionTemplate/.agents/skills/orca-slice/references/workflow.md) separates policy, job coordination, native settings, adaptive/smoothed layer height, support-interface materials, calibration and comparisons. Detailed procedures load on demand. Rules include directly stacked infill by toolpath geometry (gyroid does not qualify), user-declared-final gating for high infill and specific approval before a second support-interface material is applied. With alternate extra walls, use reduced vertical shell thickness (Orca Moderate or the selected build's equivalent), verify the effective setting and preserve the minimum solid-shell coverage. Researched sources and build-specific incompatibilities are linked from the relevant procedures.
 
 UI preview permits background window control only while normal computer operation continues uninterrupted: no cursor movement, focus takeover, global typing/clicks or clipboard replacement. File activation can bring a slicer to the foreground. When compliant access is unavailable, retain the headless result and report the exact pending visual check rather than take over the desktop.
+
+Opening a slicer automatically runs a bounded background cleanup of recognized startup dialogs, including update notices, optional login, welcome/setup and tips. It handles chained dialogs without cursor or keyboard input, preserves existing windows and reports dialogs it cannot safely close. Required consent, unsaved-work/recovery and error prompts remain for a verified decision. The returned `dialog_cleanup` status is separate from import and preview verification; custom or localized dialogs may require the selected build's background controls.
 
 ### Application housekeeping and resumable sessions
 
@@ -142,6 +146,12 @@ Inside the chosen agent, check `/mcp` for the `fusion` server. From a terminal i
 
 If the server is disconnected, check that Fusion is running, its MCP option is enabled, a design is open, and the Fusion port matches `$McpPort`. If Fusion cannot be found automatically, start it yourself or set `$FusionPath` in `Fusion-Claude.bat` to its launcher path. If an agent executable is missing, reopen the terminal and check its version command. Codex project MCP settings load only after the project is trusted; if the server is absent from `codex mcp list`, check trust and restart Codex from the project folder.
 
+### Fusion verification and reusable helpers
+
+Both agents load task-specific Fusion procedures through the same skill entrypoints. The shared [verification guide](AgenticFusionTemplate/.agents/skills/fusion-model/references/verification.md) provides bounded long-run monitoring, explicit pass/fail/unknown results, saved-revision evidence and an optional project-defined completion gate. The gate checks the complete configured criterion registry, metric bounds and artifact hashes; it does not independently establish the truth of measurements or replace physical tests. Plans and state belong under `Project/Context/`, indexed by `Project.md`; no project gate or additional approval settings are enabled by default.
+
+The [helper library](AgenticFusionTemplate/.agents/skills/fusion-model/scripts/fusion_helpers.py) accepts explicit inputs for parameter batches, dependency-aware deletion, checked temporary overlaps, exact section bounds and bounded sampled surface distances. Script exceptions do not guarantee CAD rollback: inspect actual document state before recovery or retry. The [reference-comparison procedure](AgenticFusionTemplate/.agents/skills/fusion-model/references/reference-comparison.md) loads only for photo/CAD matching, insertion/shell defects or reproducible views. Checkpoints record the commands, appearances, visibility and layout needed to reproduce the verified visible state after restart.
+
 ## Project files
 
 | File | Role |
@@ -155,7 +165,8 @@ If the server is disconnected, check that Fusion is running, its MCP option is e
 | `CLAUDE.md`, `AGENTS.md` | Small agent-specific startup and tool instructions. |
 | `.mcp.json`, `settings.json` | Claude Code project MCP and agent settings. |
 | `.codex/config.toml` | Codex project MCP connection. |
-| `.agents/skills/fusion-model/` | Shared modeling skill with task-specific Fusion API, assembly, timeline, sketch, feature, and verification references. |
+| `.agents/skills/fusion-model/` | Shared modeling procedures, on-demand evidence/reference comparisons and the explicit-input helper library. |
+| `.agents/scripts/watch_fusion.py`, `.agents/scripts/evidence_gate.py` | Bounded run-log monitoring and optional project-configured evidence validation. |
 | `.agents/skills/project-resources/` | Project skill/context creation, native discovery registration and conflict-safe template updates. |
 | `.agents/skills/fusion-print/` | Shared printing skill with references loaded by task: design rules, orientation, scan, and improvement. |
 | `.agents/skills/fusion-repair/` | Shared repair skill with references loaded by failure type. |
@@ -185,6 +196,7 @@ Apply and persist the following slicing instructions in this project. Keep one s
 WORKFLOW
 - On each new slicing request, discover installed slicers, including ordinary OrcaSlicer, Snapmaker Orca and Windows Store installations, and ask which to use. Ask even with one result unless I already named an unambiguous installed slicer. Keep that choice through job follow-ups. Never silently substitute another slicer or require a special MCP build.
 - Prepare and slice headlessly through the chosen build's verified CLI when supported, then automatically open the completed slice in that same app for required layer/toolpath UI preview. Keep intermediate comparisons headless. Explain any indispensable earlier UI setup or unavailable capability; never claim an ignored setting or uninspected preview succeeded.
+- Automatically dismiss recognized optional startup dialogs through background controls, handle chained notices and verify closure. Preserve existing windows, unsaved-work/recovery, consent and error prompts; report required/unsupported dialogs rather than accepting default actions.
 - Slicer-window control is allowed only without interrupting normal computer use. Do not move my cursor, steal focus, send global keystrokes/clicks, overwrite my clipboard or block my input. Use APIs or non-disruptive background controls. If compliant access is unavailable, retain the artifacts and report the exact pending preview/setup action.
 
 SLICING RULES
@@ -194,7 +206,7 @@ Depart from these defaults only for a specific conflict with verified design int
 2. Use a linear solid pattern on the layer immediately above each exposed bottom surface and immediately below each top surface. Keep exposed surfaces concentric; inspect local shells on stepped features too.
 3. Keep sparse infill between 10% and 70%. Use low for fit tests, medium for reasonably structural tests, and high only when I explicitly designate the version final. Working bands are low 10-20%, medium greater than 20% through 40%, and high greater than 40% through 70%; these are implementation conventions, not measured strength ratings.
 4. Prefer simple infill: lines stack directly above other lines at the same XY positions across layers, rather than forming laterally shifting ramps/overhangs. Verify actual toolpaths. Grid or aligned rectilinear can qualify; gyroid does not. Ordinary alternating rectilinear is not automatically equivalent. Use another pattern only when design intent justifies it, such as a need for more multidirectional infill behavior; the whole printed part remains anisotropic.
-5. Reserve one nominal wall for intentional flexibility, normally TPU. Otherwise use at least two walls, Alternate extra wall and Embedding wall into infill where supported. Treat those last two as distinct features and report missing capabilities.
+5. Reserve one nominal wall for intentional flexibility, normally TPU. Otherwise use at least two walls, Alternate extra wall and Embedding wall into infill where supported. Treat those last two as distinct features and report missing capabilities. With Alternate extra wall, use reduced vertical shell thickness (Orca Moderate or the verified equivalent), read back the effective value and retain minimum solid-shell coverage.
 6. For geometry thinner than twice the nozzle diameter, enable Detect thin walls with Classic. With Arachne, use its thin-feature mechanism because the separate checkbox may be disabled. Verify the feature survives.
 7. Allow infill combination only for verified directly stacked patterns; check combined extrusion height and peak flow against actual nozzle/material limits.
 8. Enable independent support layer height when using supports. Verify effective behavior; report conflicts with towers or support styles in the selected build.
@@ -228,6 +240,13 @@ The [benchmark guide](Benchmarking/Benchmarking.md) also lists slicer protocol/d
 Only the inner template is distributed. Keep benchmark sandboxes, Python caches, application installs and agent runtime data outside that folder. Exploration work stays outside the main branch.
 
 ## Changelog
+
+### v2026.11.13
+
+- Fusion workflows use bounded run-log monitoring and optional project evidence gates tied to saved revisions, required criteria, numeric bounds and artifact hashes.
+- Shared Fusion helpers and checks handle dependent parameter deletion, ambiguous feature results, persistent placement, motion/reference measurements and reproducible restart presentation; failure recovery inspects actual CAD state.
+- Slicer startup automatically dismisses recognized optional dialogs through background window messages, verifies their closure and reports required or unsupported prompts while preserving existing windows and work.
+- Alternate extra walls use reduced vertical shell thickness with effective-setting verification and retained minimum solid-shell coverage.
 
 ### v2026.11.03
 
