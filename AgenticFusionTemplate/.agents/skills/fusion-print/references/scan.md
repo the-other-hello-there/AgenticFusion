@@ -18,3 +18,13 @@ Use height = −(p·down) and the overhang test n·down > cos(`dfm_ovh_ang`), wi
   - Empty at rest but occupied in a sweep means motion clearance: don't fill it.
 - **Bed corners:** a vertical edge touching the bed counts as a corner if its two faces aren't tangent (>10°). It's convex if the in-face direction t1 (perpendicular to the edge, into face 1) has t1·n2 < 0. Find who is near it with `measureManager.measureMinimumDistance(edgeProxy, body)` in each assembled instance.
 - **Fit check after adding material:** run interference across the arm. Intended preloads (spring bumps into a purchased part) must keep their exact interference volume.
+
+## Printer-neutral capability and layer diagnostics
+
+For a printer-neutral requirement, derive the minimum bed envelope, feature/gap resolution, overhang/bridge/support needs and material-change height bands from geometry before using a named machine preset. Inspect several plausible layer schedules; a nominal nozzle assumption or automatic material swapping is not a universal printer capability. A machine-specific slice is a labeled diagnostic until that machine is in scope.
+
+Transform mesh nodes by the complete verified occurrence transform before calculating bounds, downward-facing area and region grouping. An occurrence bounding box can be a loose transformed box; use precise bounds or transformed tessellation, with reported resolution. Mesh local minima, downward area and plan-box clusters flag candidates but do not prove actual layer support.
+
+For offline layer-island diagnostics, intersect triangles with each actual layer plane, node crossing contour segments before polygonizing, classify holes by parity within each closed solid, then union occupied regions across separate solids. Preserve empty layers, including after the first occupied layer: a later reappearing region has no preceding-layer support. Record units, mesh validity, layer origins/heights, tolerances, source hashes and invalid/empty/short-mesh cases. Creating outputs must not overwrite source meshes.
+
+A region overlapping its previous layer can still have a large unsupported extension. Compare the unsupported difference area as well as wholly disconnected islands; neither test evaluates extrusion width, bridging feasibility or complete slicer behavior. Use actual toolpath preview and measured calibration for those claims. Detailed photo/CAD, shell-gap and surface-distance methods live in [reference comparison](../../fusion-model/references/reference-comparison.md), rather than parallel scan implementations.

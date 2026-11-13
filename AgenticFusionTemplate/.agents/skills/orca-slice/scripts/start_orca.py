@@ -12,6 +12,8 @@ import subprocess
 import sys
 import time
 
+sys.dont_write_bytecode = True
+import slicer_dialogs
 if sys.version_info < (3, 11):
     raise SystemExit("Orca startup needs Python 3.11 or newer.")
 
@@ -243,6 +245,7 @@ def main(argv=None):
             print(json.dumps({"status": "configured_only", "mcp_verified": False, "changed": changed}, indent=2))
             return 0
         launched = None
+        dialogs = None
         try:
             info = inspect_mcp(url)
         except Unavailable:
@@ -259,11 +262,14 @@ def main(argv=None):
             if data_dir == project or project in data_dir.parents:
                 raise ValueError("Keep OrcaMCP application data outside the portable project.")
             environment = dict(os.environ, ORCAMCP_SKIP_CLOUD_LOGIN="1")
+            before = slicer_dialogs.prepare()
             process = subprocess.Popen([str(binary), "--datadir", str(data_dir)], cwd=binary.parent,
                                        env=environment, creationflags=subprocess.CREATE_NO_WINDOW,
                                        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             launched = process.pid
             deadline = time.monotonic() + args.timeout
+            dialogs = slicer_dialogs.finish({'executable': str(binary)}, {'pid': launched}, before,
+                                            timeout=min(12, args.timeout))
             while True:
                 try:
                     info = inspect_mcp(url, timeout=min(3, max(.1, deadline - time.monotonic())))
@@ -276,6 +282,7 @@ def main(argv=None):
                     time.sleep(.5)
         changed = configure(args.project_dir, url) if args.configure else []
         print(json.dumps({"status": "ready", "mcp_url": url, "launched_pid": launched,
+                          "dialog_cleanup": dialogs,
                           **info, "changed": changed,
                           "next": "Reconnect/restart client MCP after first registration; verify the intended plate and profiles."}, indent=2))
         return 0

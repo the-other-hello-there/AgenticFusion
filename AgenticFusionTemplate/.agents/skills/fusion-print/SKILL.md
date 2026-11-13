@@ -5,11 +5,13 @@ description: Review or improve a Fusion design for FFF 3D printing. Use for prin
 
 # Fusion printing
 
-Use `Project.md`'s `Current state` and print decisions with `Agentic-Fusion.md`'s preventive rules. Record project orientation and open print decisions in `Project.md`. Priority: design intent and function, general design rules, printing preferences; preserve assembly symmetry.
+Read `Agentic-Fusion.md` and `Project.md`'s current print decisions. Follow the shared authority rules, including assembly symmetry. Record orientation and open print decisions in `Project.md`.
 
 For slicer startup, profile selection or actual slices use `orca-slice` and `FDM-Slicing.md`. The analysis assumptions below are not validated slicing settings.
 
-FFF baseline: Hydra Research design rules. Sizes assume a 0.45 mm line from a 0.4 mm nozzle; scale for the actual nozzle. Ask for nozzle or layer height when relevant; use `dfm_layer = 0.2 mm` until supplied. Stricter user rules win.
+For a printer-neutral assessment, derive geometry capability needs through the scan procedure before applying a machine preset; ask for hardware only when the requested assessment depends on it.
+
+FFF baseline for a machine-scoped assessment: Hydra Research design rules. Sizes assume a 0.45 mm line from a 0.4 mm nozzle; scale for the actual nozzle. Ask for nozzle or layer height when relevant; use `dfm_layer = 0.2 mm` until supplied. Stricter user rules win.
 
 Load only relevant references:
 

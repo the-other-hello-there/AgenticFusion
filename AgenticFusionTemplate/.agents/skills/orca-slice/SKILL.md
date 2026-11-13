@@ -20,7 +20,7 @@ Load the needed procedure:
 - [Settings and verification](references/settings.md): translate user rules into actual supported settings, resolve feature conflicts, apply job-local overrides and read back effective values.
 - [Layer height](references/layer-height.md): apply R12 adaptive height plus smoothing; verify the saved schedule, shell coverage, support compatibility and flow.
 - [Support materials](references/support-materials.md): only when proposing/applying a second interface material or diagnosing weak swap layers. Prepare the plan before requesting its required approval.
-- [Startup and UI access](references/startup.md): discovery/launch problems, Store activation, non-disruptive background controls and optional MCP. Embedded MCP in a GUI app is not headless.
+- [Startup and UI access](references/startup.md): automatic startup-dialog dismissal, discovery/launch problems, Store activation, background controls and optional MCP. Check `dialog_cleanup` and resolve reported blockers before preview; a GUI's embedded MCP is not headless.
 
 Default to verified CLI preparation/slicing, then open the completed slice for required layer/toolpath UI preview. `slicer.py slice --select ID ...` opens results after toolpath checks; do not open the source model first. Intermediate comparisons may use `--no-open`; the final result still needs UI preview. Explain an indispensable earlier UI setup exception. Read the chosen build's actual help/schema; never invent an unsupported flag or claim an ignored setting worked.
 

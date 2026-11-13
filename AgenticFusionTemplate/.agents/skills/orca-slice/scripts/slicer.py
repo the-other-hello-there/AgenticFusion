@@ -14,6 +14,7 @@ import tempfile
 import zipfile
 
 sys.dont_write_bytecode = True
+import slicer_dialogs
 if sys.version_info < (3, 11):
     raise SystemExit("Slicer automation needs Python 3.11 or newer.")
 WINDOWS_HELPER = Path(__file__).with_name("slicer_windows.ps1")
@@ -116,6 +117,7 @@ def open_app(app, file=None):
         raise ValueError("Open a model/project file, not a folder.")
     if os.name != "nt":
         raise ValueError("Application opening supports Windows.")
+    before = slicer_dialogs.prepare()
     activation_error = None
     if app.get("app_id"):
         args = ["-AppId", app["app_id"]]
@@ -123,7 +125,10 @@ def open_app(app, file=None):
             args.extend(["-OpenFile", str(file)])
         result = powershell(*args)
         if result.returncode == 0:
-            return json.loads(result.stdout)
+            opening = json.loads(result.stdout)
+            opening['dialog_cleanup'] = slicer_dialogs.finish(app, opening, before)
+            opening['pid'] = opening['dialog_cleanup'].get('main_pid') or opening.get('pid')
+            return opening
         activation_error = result.stderr.strip()
         if not app.get("executable"):
             raise RuntimeError(f"Selected Store app could not open the file: {activation_error}")
@@ -131,8 +136,11 @@ def open_app(app, file=None):
     process = subprocess.Popen([str(binary), *([str(file)] if file else [])], cwd=binary.parent,
                                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-    return {"pid": process.pid, "activation": "requested", "import_verified": False,
-            "store_activation_error": activation_error}
+    opening = {"pid": process.pid, "activation": "requested", "import_verified": False,
+               "store_activation_error": activation_error}
+    opening['dialog_cleanup'] = slicer_dialogs.finish(app, opening, before)
+    opening['pid'] = opening['dialog_cleanup'].get('main_pid') or process.pid
+    return opening
 
 
 def probe(app):

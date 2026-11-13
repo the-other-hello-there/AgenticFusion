@@ -19,6 +19,8 @@ Check the shared [application-session](.agents/skills/application-session/SKILL.
 | Compare slicing variants | Use `slice-compare`; preserve and verify the accepted baseline. |
 | Broad DfAM assessment | Use `fusion-print` and its linked `DfAM.md` protocol for the parts in scope. |
 | Project-specific skills/context or template updates | Use `project-resources`; keep authored additions in `Project/` and link them from root `Project.md`. |
+| Long Fusion build/check or configured project evidence gate | Read `fusion-model`'s [verification procedure](.agents/skills/fusion-model/references/verification.md); monitor the current run and distinguish execution from accepted saved evidence. |
+| Photo/CAD-reference matching or reproducible delivery views | Read `fusion-model`'s [reference-comparison procedure](.agents/skills/fusion-model/references/reference-comparison.md). |
 | Observed call, save, sketch, feature, or DfAM failure | Use `fusion-repair` for the symptom; retain preventive and printing rules. |
 | Unused app resources, usage-limit handoff, or application restart deadline | Use `application-session` for shared checkpoints, cleanup, graceful close/restart and resumption. |
 
@@ -28,6 +30,7 @@ Re-read an authored file after editing it in the same session.
 
 - Priority: `Project.md`'s design intent and function, then generic design rules, then DfAM preferences; ask about conflicts. Assembly symmetry outranks a printing tweak that breaks it.
 - One home per fact: verified project intent, parameters, and job/slice/calibration results in `Project.md` or its indexed notes; printer hardware and portable native presets in `Printers.json`; slicing rules and user preferences in `FDM-Slicing.md`; shared priorities here; preventive modeling and MCP methods in `fusion-model`; CAD printing methods in `fusion-print`; slicing methods in the relevant shared skill; broad assessment protocol in `DfAM.md`; observed Fusion failures and recovery in `fusion-repair`. Keep prevention in its operating guide even when a failure example lives in repair guidance.
+- Before an edit, connect the requested correction to its controlling cause and a comparison that could reject it. A failed required criterion or latest explicit rejection invalidates that acceptance; keep the obligation active and preserve historical evidence. Distinguish source, probe, live, saved and independent-readback results.
 - Record only verified behavior or user-stated rules. Preserve useful exact errors, numbers, parameter names, and reasons; merge duplicates. Keep project names, dimensions, and history out of generic files, and secrets, account IDs, and personal data out of all context files.
 
 ## Folder and launcher rules

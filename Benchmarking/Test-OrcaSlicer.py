@@ -14,6 +14,7 @@ from unittest import mock
 
 sys.dont_write_bytecode = True
 HELPER = Path(__file__).resolve().parents[1] / "AgenticFusionTemplate/.agents/skills/orca-slice/scripts/start_orca.py"
+sys.path.insert(0, str(HELPER.parent))
 spec = importlib.util.spec_from_file_location("start_orca", HELPER)
 orca = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(orca)

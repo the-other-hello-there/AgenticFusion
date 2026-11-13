@@ -15,6 +15,7 @@ import zipfile
 
 sys.dont_write_bytecode = True
 SCRIPT = Path(__file__).resolve().parents[1] / "AgenticFusionTemplate/.agents/skills/orca-slice/scripts/slicer.py"
+sys.path.insert(0, str(SCRIPT.parent))
 spec = importlib.util.spec_from_file_location("slicer", SCRIPT)
 slicer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(slicer)
@@ -30,6 +31,10 @@ class SlicerChecks(unittest.TestCase):
         self.binary.touch()
         self.app = slicer.normalize([{"name": "Snapmaker Orca", "version": "any-version",
                                      "executable": str(self.binary), "source": "test"}])[0]
+        # Actual desktop messaging is tested separately with an isolated adapter.
+        prepare = mock.patch.object(slicer.slicer_dialogs, 'prepare', return_value=None)
+        prepare.start()
+        self.addCleanup(prepare.stop)
 
     def args(self, **overrides):
         source = self.root / "prepared job.3mf"

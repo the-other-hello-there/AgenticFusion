@@ -35,3 +35,10 @@
   - Rails must pass exactly through section points (`ASM_GUIDE_NOT_INTERSECT`), so project the section points into the rail sketches.
 - **Blended features with true sections** (e.g. elliptical spokes that merge into each other): loft between half-sections of two neighbors, with rails for the outline and the crest, then pattern. Halves meet on the symmetry plane; check for gaps with `body.pointContainment`. Plain lofts carry the true section beyond the blend.
 
+## Construction and surface-derived parts
+
+Use `sketchDimensions.addOffsetDimension(line, point, textPoint)` for point-to-line distance rather than the two-point method. Project needed axes/points before deferring compute. Read a unitless parameter's native value or evaluate with the declared unitless convention, not a length-only helper.
+
+Avoid building a smooth exterior as barely overlapping unblended primitives: inherited slivers/seams can break later offsets and selections as parameters change. A healthy loft can fold within one face; inspect sections, normals, clearance and flexed geometry. Share immutable master geometry, not mutable tool bodies whose edits alter earlier cuts.
+
+For surface-following inserts, make a supported surface copy, thicken and identify only intended solids before cutting the host. Derive every insert region from the intact master first; verify the host does not split. A master-linked seed/intersection construction needs an interior seed proven across the parameter domain, correct kept-tool identity, lump/volume checks and saved-reopen verification. Insertion feasibility and pocket floors precede detailed geometry; see [reference comparison](reference-comparison.md#inserts-pocket-floors-and-closed-skins).
